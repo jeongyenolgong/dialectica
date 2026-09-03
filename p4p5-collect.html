@@ -134,6 +134,19 @@
         같은 화면에 흰 네모가 두 뜻으로 있으면 안 됩니다 → 글자로 셉니다 */
   #hintLeft{font-size:20px; color:var(--dim); letter-spacing:.04em}
   #hintLeft b{color:var(--name); font-weight:400}
+  /* 힌트가 걸린 구역 — 힌트를 한 번이라도 사야 나옵니다 */
+  #qName{font-size:18px; color:var(--line); margin-left:6px}
+  #qBtn{font-family:inherit; font-size:16px; letter-spacing:.04em; background:transparent;
+        color:var(--line); border:2px solid var(--line); padding:6px 10px; cursor:pointer}
+  /* 서른 개까지 쌓이는 자리라 세 줄만 보이고 나머지는 밀어 올립니다 */
+  #found{max-height:100px; overflow-y:auto;
+         scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+  #found::-webkit-scrollbar{width:6px}
+  #found::-webkit-scrollbar-track{background:transparent}
+  #found::-webkit-scrollbar-thumb{background:var(--line)}
+  /* 다 모으면 입력 자리를 내리고 띠만 남깁니다 — 더 넣을 것이 없는 상태입니다 */
+  #v5wmid.done .inrow, #v5wmid.done #hintRow, #v5wmid.done #hints,
+  #v5wmid.done #backw, #v5wmid.done #gw{display:none}
   /* 쓴 힌트는 지워지지 않고 쌓입니다 — 값을 치른 것이 눈에 남아 있어야 합니다 */
   /* ⭐ 가운데 맞춤을 버리고 **왼쪽 맞춤**입니다 (2026.09.03 사용자 "중앙정렬로 힌트가
      나와서 가독성이 떨어져") — 줄마다 시작이 어긋나면 눈이 매번 처음을 다시 찾습니다 */
@@ -189,24 +202,45 @@
      찾은 단어는 그 자리에 남습니다. 내가 이미 모은 것이라 폰이 새로 알려 주는 게 아닙니다.
      ⛔ 아직 못 찾은 자리에 빈 칸을 깔지 않습니다 (2026.09.03 사용자 "빈칸은 없애는 게 좋아").
         개수는 바로 위 「n개 중 k개」가 이미 말하고, 서랍도 같은 규칙입니다(8.12) */
-  #prog{font-size:24px; color:var(--name); height:24px}
+  /* 진행 줄을 누르면 서랍이 열립니다 — 서른 개를 반대말까지 한눈에 봅니다 */
+  #prog{font-size:24px; color:var(--name); height:26px; cursor:pointer}
+  #prog i{font-style:normal; font-size:16px; color:var(--bg); background:var(--line);
+          padding:2px 6px; margin-left:10px; vertical-align:3px}
   #gw{margin-top:18px}                 /* 진행 줄과 지시문이 붙지 않게 */
   #found{display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
          margin-top:12px; max-width:340px}
   #found:empty{margin-top:0}
   #found .je{background:var(--name); color:var(--bg); padding:2px 5px; font-size:18px}
 
+  /* ── 구역 보기 ── */
+  #qdTitle{font-size:24px; color:var(--name); height:24px}
+  #qdList{margin-top:22px; width:350px; max-height:330px; overflow-y:auto;
+          display:flex; flex-direction:column; align-items:flex-start; gap:9px;
+          font-size:18px; line-height:1;
+          scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+  #qdList::-webkit-scrollbar{width:6px}
+  #qdList::-webkit-scrollbar-thumb{background:var(--line)}
+  #qdList .je{background:var(--name); color:var(--bg); padding:3px 6px; font-size:18px}
+  #qdNote{margin-top:18px; font-size:18px; color:var(--line); height:18px}
+  #qdRow{display:flex; gap:12px; align-items:center; margin-top:24px}
+  #qdHint,#qdOther{font-family:inherit; font-size:20px; letter-spacing:.06em;
+        background:transparent; color:var(--name); border:2px solid var(--line);
+        padding:8px 14px; cursor:pointer}
+  #qdHint.off{color:var(--dim); border-color:var(--dim); cursor:not-allowed}
+  #qdLeft{font-size:20px; color:var(--dim); letter-spacing:.04em}
+  #qdLeft b{color:var(--name); font-weight:400}
+
   /* ── 힌트 표 — 남은 단어마다 한 줄. 힌트를 살 때마다 칸이 오른쪽으로 붙습니다 ── */
   /* ⭐ 세 열을 맞춥니다 — 음절 네모·방향·초성이 줄마다 같은 자리에서 시작합니다.
      첫 열은 가장 긴 단어(3+3음절)에 맞춘 고정 폭 152px입니다 */
-  #hints .hrow{display:grid; grid-template-columns:152px 22px auto; gap:14px;
+  #hints .hrow, #qdList .hrow{display:grid; grid-template-columns:152px 22px auto; gap:14px;
                align-items:center; font-size:18px; line-height:1}
-  #hints .ar{color:var(--name); text-align:center}
+  #hints .ar, #qdList .ar{color:var(--name); text-align:center}
   #hints{scrollbar-width:thin; scrollbar-color:var(--line) transparent}
   #hints::-webkit-scrollbar{width:6px}
   #hints::-webkit-scrollbar-track{background:transparent}
   #hints::-webkit-scrollbar-thumb{background:var(--line); border-radius:0}
-  #hints .cho{color:var(--name); letter-spacing:.14em}
+  #hints .cho, #qdList .cho{color:var(--name); letter-spacing:.14em}
 
   /* ── 실제로 폰에서 돌 때는 목업 살림살이를 통째로 내립니다 ──
      ⭐ 스위치를 만들지 않았습니다. 손가락으로 만지는 기기면 실제 플레이, 마우스가 있으면 검토용입니다
@@ -325,6 +359,21 @@
       </div>
     </section>
 
+    <!-- 구역 보기 — 「힌트 보기」로 들어옵니다. 사는 것과 보는 것이 갈립니다:
+         힌트는 사면 서른 개 전부에 풀리고, 이 화면은 한 구역씩 들여다보는 창입니다 -->
+    <section class="view" id="v5qd">
+      <div class="mid">
+        <p id="qdTitle"></p>
+        <div id="qdList"></div>
+        <p id="qdNote"></p>
+        <div id="qdRow">
+          <button id="qdHint">힌트</button><span id="qdLeft"></span>
+          <button id="qdOther">다른 구역</button>
+        </div>
+        <button id="qdClose" class="back">닫기</button>
+      </div>
+    </section>
+
     <!-- P5단 — 격자에서 찾은 단어를 스스로 적는 자리. 여기를 통과해야 반(反)으로 갑니다 -->
     <section class="view" id="v5w">
       <div class="mid" id="v5wmid">
@@ -338,8 +387,7 @@
           <button id="entw" class="ent">ENT</button>
         </div>
         <p class="msg" id="msgw"></p>
-        <div id="hintRow"><button id="hintBtn">힌트</button><span id="hintLeft"></span></div>
-        <div id="hints"></div>
+        <div id="hintRow"><button id="hintBtn">힌트 보기</button><span id="hintLeft"></span></div>
         <button id="backw" class="back">뒤로</button>
       </div>
       
@@ -420,6 +468,13 @@ const SHEETS = [
  {c:"843", v:"4단어", w:[{"w":"물성","p":"B","d":"대각선 ↘"}, {"w":"기존의 틀","p":"A","d":"대각선 ↗"}, {"w":"상상","p":"B","d":"가로"}]},
  {c:"705", v:"한판", w:[{"w":"관점","p":"A","d":"가로","q":0}, {"w":"인간 중심","p":"A","d":"가로","q":1}, {"w":"물성","p":"B","d":"대각선 ↘","q":1}, {"w":"프로토타입","p":"A","d":"가로","q":0}, {"w":"따뜻한 감수성","p":"B","d":"대각선 ↘","q":1}, {"w":"역동성","p":"A","d":"세로","q":1}, {"w":"영감의 언덕","p":"B","d":"세로","q":1}, {"w":"변화의 흐름","p":"A","d":"가로","q":0}, {"w":"오래된 사유","p":"B","d":"대각선 ↘","q":1}, {"w":"경계","p":"A","d":"대각선 ↗","q":0}, {"w":"응시","p":"A","d":"대각선 ↘","q":0}, {"w":"방심의 시간","p":"B","d":"가로","q":0}, {"w":"포용","p":"B","d":"세로","q":0}, {"w":"잊힌 흔적","p":"A","d":"가로","q":0}, {"w":"조화","p":"B","d":"세로","q":1}, {"w":"일상","p":"A","d":"세로","q":1}, {"w":"기존의 틀","p":"A","d":"세로","q":2}, {"w":"모험가 정신","p":"A","d":"세로","q":3}, {"w":"오래된 언어","p":"A","d":"가로","q":2}, {"w":"도전","p":"A","d":"세로","q":3}, {"w":"뜻밖의 설렘","p":"A","d":"가로","q":3}, {"w":"사색","p":"A","d":"세로","q":3}, {"w":"본질","p":"A","d":"대각선 ↗","q":2}, {"w":"감각의 언어","p":"A","d":"세로","q":2}, {"w":"손의 감각","p":"A","d":"가로","q":3}, {"w":"헤리티지","p":"B","d":"세로","q":3}, {"w":"상상","p":"B","d":"대각선 ↗","q":2}, {"w":"직관","p":"A","d":"대각선 ↘","q":2}, {"w":"지속되는 태도","p":"A","d":"가로","q":3}, {"w":"도시의 결","p":"B","d":"가로","q":2}]}
 ];
+/* ⭐ 판이 한 판(20×20·30단어)으로 정해졌습니다 (2026.09.03 사용자). 코드는
+   「지금 어느 포스터 앞에 있나」를 알려 주던 것인데 판이 하나면 알려 줄 게 없어
+   **코드 화면을 건너뜁니다** (사용자 "코드가 이제는 없어도 될 것 같은데").
+   ⛔ 코드 화면과 3·4단어 자료는 **지우지 않았습니다** — 이 한 줄을 false로
+      되돌리면 코드 입력이 그대로 돌아오고 세 판을 다 받습니다 */
+const ONE_BOARD = true;
+
 const QNAME = ["위 왼쪽", "위 오른쪽", "아래 왼쪽", "아래 오른쪽"];
 /* 판 셋에 같은 단어 30개가 들어 있습니다 — 그래서 **모은 것은 단어로 셉니다.**
    판을 갈아 가며 테스트해도 같은 단어를 두 번 모으지 않습니다 */
@@ -450,7 +505,9 @@ const MYTYPE = 1;                       /* 이 폰의 주인 — 목업에서는
 
 /* 걷어낸 조작줄 요소를 찾아도 죽지 않게 — 빈 자리를 돌려줍니다 */
 const $ = s => document.querySelector(s) || document.createElement("div");
-let code = "", pairs = [], mine = "", cur = null, curSheet = null, curWord = null, back = "v4",
+let code = "", pairs = [], mine = "", cur = null, curSheet = null, curWord = null,
+    curQ = null,                      /* 힌트가 걸려 있는 구역 — 힌트를 살 때 고릅니다 */
+    back = "v4",
     caretOn = true, blink = null, timers = [], allDone = false;
 const later = (ms,fn) => timers.push(setTimeout(fn, ms));
 const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
@@ -585,23 +642,18 @@ function paintBoard(){
   const G = gotSet();
   groupsOf(curSheet).forEach(g => {
     const n = g.words.length, j = g.words.filter(x => G.has(x.w)).length;
-    const seen = seenQ[g.c + "/" + g.q] || j >= n;
     const el = document.createElement("div");
     el.className = "qd" + (j >= n ? " done" : "");
     el.dataset.q = g.q;
+    /* ⭐ 넷 다 개수를 답니다 — 「이 구역에 여덟 개」는 공짜로 주기로 한 기본 정보입니다.
+       구역이 관문이던 시절엔 고른 뒤에만 알려 줬는데, 지금은 보는 창이라 처음부터 보입니다 */
     el.innerHTML = dotsSVG()
       + (g.q === 0 ? `<span class="ttl2">디알렉티카</span>` : "")
       + (g.q === 3 ? `<span class="cd">${g.c}</span>` : "")
-      + (seen ? `<span class="cnt">${j}/${n}</span>` : "");
-    el.onclick = () => {
-      if(j >= n){ sayQ("이 구역은 다 모았습니다"); return; }
-      seenQ[g.c + "/" + g.q] = 1;
-      cur = g;
-      /* ⛔ 연출 없이 바로 넘어갑니다 (2026.09.03 사용자 "연출 없이 넘어가는 게 좋을 것 같아").
-            폐기 둘 — ①고른 구역이 확대되어 화면을 채움("너무 과한") ②한 프레임 반전.
-            코드 → 판 그림도 연출이 없어 이쪽과 결이 맞습니다 */
-      toWord();
-    };
+      + `<span class="cnt">${j}/${n}</span>`;
+    /* 다 모은 구역도 열립니다 — 무엇을 찾았는지 다시 보는 자리이기도 합니다.
+       ⛔ 넘어갈 때 연출은 없습니다 (2026.09.03 사용자 "연출 없이 넘어가는 게 좋을 것 같아") */
+    el.onclick = () => { curQ = g; toQuad(); };
     b.appendChild(el);
   });
   const cross = document.createElement("i");
@@ -614,7 +666,7 @@ function toBoard(){
   show("v5q"); back = "v5q";
   $("#msgq").textContent = "";
   paintBoard();
-  const t = "찾을 구역 선택";
+  const t = "어느 구역을 볼까요?";
   $("#gq").textContent = "";
   for(let i=1;i<=t.length;i++)
     later(i*TYPE_MS, () => $("#gq").textContent = t.slice(0,i));
@@ -624,7 +676,61 @@ function sayQ(t){
   $("#msgq").textContent = t;
   later(1400, () => { if($("#msgq").textContent === t) $("#msgq").textContent = ""; });
 }
-$("#backq").onclick = () => { clearAll(); show("v4"); back = "v4"; };
+/* 힌트를 안 사고 물러나는 자리 — 단어 입력으로 그대로 돌아갑니다 */
+$("#backq").onclick = () => { clearAll(); toWord(true); };
+
+/* ── 구역 보기 ───────────────────────────────────────────────────
+   ⭐ **사는 것과 보는 것이 갈립니다** (2026.09.03 사용자 "힌트 보기를 선택하면
+      사분면 화면이 나오고 그 사분면에서 내가 입력한 단어와 힌트들을 볼 수 있으면 어때?").
+      힌트는 한 번 사면 **서른 단어 전부**에 풀리고(예산 셋이 진짜 셋), 이 화면은
+      그 결과를 **한 구역씩 들여다보는 창**입니다. 「구역 넷 × 종류 셋 = 열둘」 같은
+      어긋남이 여기서 없어집니다.
+   ⭐ 찾은 줄은 단어가 그대로 보입니다 — 내가 무엇을 넣었는지 여기서 확인합니다.      */
+function allShuffled(g){
+  const a = g.words.slice();
+  let s = 0; for(const ch of gkey(g)) s = (s*31 + ch.charCodeAt(0)) % 99991;
+  for(let i=a.length-1;i>0;i--){ s = (s*1103515245 + 12345) % 2147483648;
+    const j = s % (i+1); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function paintQuad(){
+  const G = gotSet(), n = curQ.words.length;
+  const got = curQ.words.filter(x => G.has(x.w)).length;
+  $("#qdTitle").textContent = `${curQ.label} · ${n}개 중 ${got}개 찾음`;
+  const box = $("#qdList"); box.innerHTML = "";
+  allShuffled(curQ).forEach(x => {
+    const r = document.createElement("div"); r.className = "hrow";
+    if(G.has(x.w)){                        /* 찾은 줄 — 단어가 그대로 */
+      r.innerHTML = `<span class="je">${x.w}</span>`;
+      r.style.gridTemplateColumns = "auto";
+    } else if(hintsUsed){                  /* 못 찾은 줄 — 산 만큼만 */
+      const grp = x.w.split(" ")
+        .map(g => `<span class="grp">${[...g].map(() => "<i></i>").join("")}</span>`).join("");
+      let s = `<span class="boxes">${grp}</span>`;
+      if(hintsUsed >= 2) s += `<span class="ar">${ARROW[x.d]}</span>`;
+      if(hintsUsed >= 3) s += `<span class="cho">${CHO_OF(x.w)}</span>`;
+      r.innerHTML = s;
+    } else return;                         /* 아직 아무것도 안 샀으면 안 그립니다 */
+    box.appendChild(r);
+  });
+  const left = n - got;
+  $("#qdNote").textContent =
+    (!hintsUsed && left) ? `나머지 ${left}개는 힌트를 사면 보입니다` : "";
+  $("#qdHint").className = hintsUsed >= HINT_MAX ? "off" : "";
+  $("#qdLeft").innerHTML = `<b>${hintsUsed}</b>/${HINT_MAX}`;
+}
+function toQuad(){
+  clearInterval(blink); clearAll();
+  show("v5qd"); back = "v5qd";
+  paintQuad(); gauge();
+}
+$("#qdHint").onclick = () => {
+  if(hintsUsed >= HINT_MAX) return;
+  hintsUsed++;                    /* ⭐ 서른 단어 전부에 풀립니다 */
+  paintQuad(); gauge();
+};
+$("#qdOther").onclick = () => toBoard();
+$("#qdClose").onclick = () => toWord(true);
 
 /* ── P5단 · 격자에서 찾은 단어 입력 ─────────────────────────────
    ⛔ 코드를 넣었다고 단어를 보여주지 않습니다 — 2026.08.14 사용자 「폐기야」.
@@ -637,7 +743,7 @@ $("#backq").onclick = () => { clearAll(); show("v4"); back = "v4"; };
       "배점은 늘리면 돼"). 아래 넷은 자리를 잡아 둔 임시 값입니다 */
 const SCORE = [4, 3, 2, 1];         /* 힌트 0회 · 1회 · 2회 · 3회 */
 
-let guess = "", hintsUsed = 0;
+let guess = "", hintsUsed = 0;   /* 판 전체를 통틀어 힌트를 누른 횟수 — 점수는 이것만 봅니다 */
 
 /* ── 관대한 대조 ──
    우리가 재는 건 철자 실력이 아니라 **포스터 앞에 있었는가**다.
@@ -696,19 +802,28 @@ function paintProg(){
   const got = cur.words.filter(x => G.has(x.w));
   /* ⛔ 「위 왼쪽」 같은 구역 이름은 안 답니다 (2026.09.03 사용자 "이미 구역을 선택했으니까") —
         고르고 들어온 자리라 이름이 한 겹 더입니다. 이름은 판 그림에서만 뜻이 있습니다 */
-  $("#prog").textContent = `${n}개 중 ${got.length}개 찾음`;
+  $("#prog").innerHTML = `${n}개 중 ${got.length}개 찾음<i>서랍</i>`;
   const box = $("#found"); box.innerHTML = "";
-  got.forEach(x => {
+  /* ⭐ 방금 찾은 것이 맨 앞에 옵니다 — 서른 개까지 쌓이는 자리라
+     오래된 것부터 쌓으면 방금 넣은 단어가 스크롤 밖으로 밀려납니다 */
+  got.slice().reverse().forEach(x => {
     const s = document.createElement("span");
     s.className = "je"; s.textContent = x.w;
     box.appendChild(s);
   });
 }
 
-function toWord(){
+/* quick — 같은 무리로 곧장 돌아올 때는 지시문 타자를 다시 치지 않습니다.
+   한 장에서 여러 개를 모으니 매번 처음부터 찍으면 기다리는 시간만 쌓입니다 */
+function toWord(quick){
   clearInterval(blink); clearAll();
   guess = ""; $("#hiddenw").value = "";
-  hintsUsed = hintMem[gkey(cur)] || 0;
+  /* ⛔ 구역별로 세던 것은 폐기 (2026.09.03 사용자 "굳이 나눠서 해야 할까?") —
+     구역을 바꿀 때마다 카운터가 되돌아가 보였고, 점수를 참가자에게 안 보여주므로
+     구역별로 정교하게 깎아 봐야 아무도 느낄 수 없었습니다.
+     hintsUsed는 판 전체 횟수라 화면을 옮겨도 그대로입니다 */
+  /* 한 판에서는 물러날 곳이 없습니다 — 코드 화면이 없어졌습니다 */
+  $("#backw").style.display = ONE_BOARD ? "none" : "";
   show("v5w"); back = "v5w";
   const f = $("#fieldw");
   $("#gw").textContent = ""; $("#msgw").textContent = "";
@@ -717,9 +832,10 @@ function toWord(){
   f.className = "field draw";        /* ⛔ innerHTML을 비우지 말 것 — 입력 칸이 지워집니다 */
 
   const t = "포스터에서 찾은 단어 입력";
-  for(let i=1;i<=t.length;i++)
+  if(quick) $("#gw").textContent = t;
+  else for(let i=1;i<=t.length;i++)
     later(i*TYPE_MS, () => $("#gw").textContent = t.slice(0,i));
-  const B = t.length*TYPE_MS + 120;
+  const B = quick ? 0 : t.length*TYPE_MS + 120;
   later(B, () => { f.className = "field"; paintW(); });
   later(B + 150, () => { $("#hiddenw").focus(); $("#kbw").classList.add("on"); });
   gauge();
@@ -730,6 +846,7 @@ function paintW(){
 }
 $("#hiddenw").addEventListener("input", e => { guess = e.target.value; paintW(); });
 $("#v5w").addEventListener("click", e => {
+  if(e.target.closest("#prog")){ openDrawer(); return; }   /* 진행 줄 = 서랍으로 가는 문 */
   if(e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") $("#hiddenw").focus();
 });
 
@@ -774,40 +891,42 @@ const CHO_OF = w => [...w].map(ch => {
 }).join("");
 function paintHintBtn(){
   const left = HINT_MAX - hintsUsed;
-  $("#hintBtn").textContent = "힌트";
-  $("#hintBtn").className = left ? "" : "off";
+  $("#hintBtn").textContent = "힌트 보기";
+  $("#hintBtn").className = "";        /* 다 써도 눌립니다 — 보는 자리이기도 합니다 */
   /* 버튼 밖에서 글자로 셉니다 — 네모는 음절 힌트가 이미 쓰고 있습니다.
      쓴 개수 / 전체 (2026.09.03 사용자 "1/n 이런 스타일로 해줘") */
   $("#hintLeft").innerHTML = `<b>${hintsUsed}</b>/${HINT_MAX}`;
 }
 function paintHints(){
   const box = $("#hints"); box.innerHTML = "";
-  if(!hintsUsed) return;
+  /* ⛔ 구역은 힌트에서도 빠졌습니다 (2026.09.03 사용자 "힌트를 1번 쓰면 구역에
+     상관없이 모두 힌트가 하나씩 풀려야 하지 않나") — 구역 넷 × 종류 셋이면
+     실제로는 열두 칸인데 예산은 셋이라 숫자가 안 맞았습니다.
+     이제 한 번이 서른 단어 전부에 걸립니다. 목록이 길면 스크롤해서 봅니다 */
+  const lv = hintsUsed;
+  if(!lv) return;
   shuffled(cur).forEach(x => {
     const r = document.createElement("div"); r.className = "hrow";
     /* ① 음절 수 — 두 어절이면 사이를 벌려 나눔까지 보입니다 */
     const grp = x.w.split(" ")
       .map(g => `<span class="grp">${[...g].map(() => "<i></i>").join("")}</span>`).join("");
     let s = `<span class="boxes">${grp}</span>`;
-    if(hintsUsed >= 2) s += `<span class="ar">${ARROW[x.d]}</span>`;   /* ② 방향 */
-    if(hintsUsed >= 3) s += `<span class="cho">${CHO_OF(x.w)}</span>`; /* ③ 초성 */
+    if(lv >= 2) s += `<span class="ar">${ARROW[x.d]}</span>`;   /* ② 방향 */
+    if(lv >= 3) s += `<span class="cho">${CHO_OF(x.w)}</span>`; /* ③ 초성 */
     r.innerHTML = s;
     box.appendChild(r);
   });
 }
-$("#hintBtn").onclick = () => {
-  if(hintsUsed >= HINT_MAX) return;
-  hintsUsed++;
-  hintMem[gkey(cur)] = hintsUsed;
-  paintHints();
-  paintHintBtn();
-  $("#hiddenw").focus();
-  gauge();
-};
+/* 「힌트 보기」 — 판 그림으로 갑니다. 사는 것은 구역 보기 화면 안에서 합니다 */
+$("#hintBtn").onclick = () => toBoard();
+/* ⛔ 「구역 바꾸기」는 화면에서 내렸습니다 — 힌트가 판 전체에 걸리므로 옮길 구역이 없습니다.
+   판 그림(toBoard)과 구역을 나누는 코드는 지우지 않고 남겨 둡니다 */
 $("#backw").onclick = () => {
   clearInterval(blink); clearAll();
   $("#kbw").classList.remove("on");
-  show("v4"); back = "v4";
+  /* 한 판은 구역 고르기로 한 걸음만 물러납니다 — 코드는 하나뿐이라 다시 넣을 일이 없습니다 */
+  if(curSheet && curSheet.v === "한판") toBoard();
+  else { show("v4"); back = "v4"; }
 };
 
 /* ── P5 ─────────────────────────────────────────────────────── */
@@ -869,12 +988,16 @@ $("#v5").addEventListener("click", e => {
 $("#ent").onclick = () => {
   if(!mine.length) return;
   clearInterval(blink); clearAll();
-  /* h — 이 단어를 찾는 데 쓴 힌트 수. pt — 그래서 받은 점수(SCORE) */
-  pairs.push({c:cur.c, q:cur.q, w:curWord.w, m:mine, h:hintsUsed, pt:SCORE[hintsUsed]});
+  /* h — 이 단어를 찾을 때까지 쓴 힌트 수. pt — 그래서 받은 점수(SCORE).
+     ⭐ 어느 구역에서 썼는지는 안 따집니다 — 쓴 횟수만 봅니다.
+        이미 찾아 둔 단어는 나중에 힌트를 사도 안 깎입니다(점수는 찾는 순간에 정해집니다) */
+  const h = hintsUsed;
+  pairs.push({c:cur.c, q:(curWord.q === undefined ? cur.q : curWord.q),
+              w:curWord.w, m:mine, h, pt:SCORE[h]});
   /* 진행자 화면이 받아 적습니다 — 세는 곳이 하나여야 스크린과 어긋나지 않습니다 */
   const nth = pairs.length;                    /* 이 쌍이 몇 번째인가 */
   Bus.sayUntil({pair:{id:Bus.me(), nth, code:cur.c, word:curWord.w, mine,
-                      hints:hintsUsed, pt:SCORE[hintsUsed]}},
+                      hints:h, pt:SCORE[h]}},
                b => ((((b.ack||{})[Bus.me()]||{}).p)||[]).includes(nth));
   /* 폰 안에도 적어 둡니다 — P6가 이 쌍으로 카드를 만듭니다 (6.4 ⑦) */
   localStorage.setItem("dlk.pairs." + Bus.me(), JSON.stringify(pairs));
@@ -907,9 +1030,19 @@ $("#ent").onclick = () => {
       if(i === N){
         fly.style.display = "none";
         mid.classList.remove("gone");
-        show("v4"); back = "v4";      /* 화면이 P4로 바뀌면서 */
         blinkDrawer();                /* 서랍 버튼에 박히며 번쩍 */
-        if(gotSet().size >= ALLWORDS.length) finishAll();
+        /* ⭐ 한 장에서 여러 개를 모으는데 쌍 하나마다 코드를 다시 넣는 것이
+           번거로웠습니다 (2026.09.03 사용자 "단어 하나를 입력하고 나면 또 코드를
+           입력해야 하는 게 불편해") → **그 장에 단어가 남아 있으면 그 자리로 곧장
+           돌아옵니다.** 코드 화면은 장을 옮길 때만 지납니다.
+           ⛔ 6.4 ⑦의 「P5 다음은 언제나 P4」는 여기서 폐기됐습니다 */
+        if(gotSet().size >= ALLWORDS.length){
+          if(!ONE_BOARD){ show("v4"); back = "v4"; }
+          finishAll();
+        }
+        else if(remain(cur).length) toWord(true);
+        else if(curSheet && curSheet.v === "한판") toBoard();
+        else { show("v4"); back = "v4"; }
         gauge();
       }
     });
@@ -993,18 +1126,29 @@ function finishAll(){
   $("#g4").textContent = "";        /* 더 넣을 코드가 없으니 지시문도 내립니다 */
   banner("단어 수집 완료");
   paintPad();
+  if(ONE_BOARD){ $("#v5wmid").classList.add("done"); paintProg(); }
 }
 
 /* ── 판 만들기 ── */
 function start(){
   clearAll(); clearInterval(blink);
   code = ""; pairs = []; mine = ""; allDone = false;
-  cur = null; curSheet = null; curWord = null;
+  cur = null; curSheet = null; curWord = null; curQ = null;
+  $("#v5wmid").classList.remove("done");
   Object.keys(seenQ).forEach(k => delete seenQ[k]);
   Object.keys(hintMem).forEach(k => delete hintMem[k]);
   $("#hslot").innerHTML = emblemSVG(MYTYPE, 22);
   $("#msg").textContent = ""; $("#g4").textContent = ""; $("#toast").classList.remove("on");
   buildPad(); paintSlots(); show("v4"); back = "v4";
+  /* ⭐ 한 판이면 코드 화면을 통째로 건너뛰고 바로 단어 입력으로 엽니다.
+     판 전체 30단어가 한 무리이고, 구역은 힌트를 살 때만 갈립니다 */
+  if(ONE_BOARD){
+    curSheet = SHEETS.find(s => s.v === "한판");
+    cur = {c:curSheet.c, v:curSheet.v, q:-1, label:"", words:curSheet.w};
+    later(60, () => toWord());
+    gauge();
+    return;
+  }
   /* 진입 — 「포스터 코드 입력」이 한 글자씩 찍히고 슬롯이 하나씩 그려집니다 */
   const g = "포스터 코드 입력";
   for(let i=1;i<=g.length;i++)
@@ -1015,9 +1159,10 @@ function start(){
 function gauge(extra){
   const view = $("#drawer").classList.contains("on") ? "서랍"
              : ($("#v5").classList.contains("on") ? "P5 반대말 입력"
-             : ($("#v5q").classList.contains("on") ? "판 그림 (사분면 고르기)"
+             : ($("#v5qd").classList.contains("on") ? "구역 보기"
+             : ($("#v5q").classList.contains("on") ? "판 그림 (구역 고르기)"
              : ($("#v5w").classList.contains("on") ? `단어 입력 (힌트 ${hintsUsed}/${HINT_MAX})`
-             : "P4 코드 입력")));
+             : "P4 코드 입력"))));
   const pts = pairs.reduce((s,p) => s + (p.pt || 0), 0);
   const here = cur ? ` · 지금 무리 ${(cur.label ? cur.label + " " : "")}${remain(cur).length}개 남음` : "";
   const n3 = SHEETS.filter(s => s.v === "3단어").length,
