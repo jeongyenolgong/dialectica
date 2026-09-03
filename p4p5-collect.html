@@ -9,7 +9,7 @@
      (2026.08.14 사용자 "이거 버그 같아. 하지마"). 게임 화면은 폰 한 판에 딱 맞아야 합니다 -->
 <meta name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>디알렉티카 — P4 단어 입력 · P5 반대말 입력 · 서랍 (모바일)</title>
+<title>디알렉티카 — 수집 (판 셋 테스트판) · P4 코드 · 판 그림 · 단어 입력 · 반대말 · 서랍</title>
 <style>
   :root{
     --bg:#101C8C; --bg-2:#0A1266; --line:#4E60D8; --name:#FFFFFF;
@@ -127,15 +127,86 @@
            background:transparent; color:var(--name); border:2px solid var(--line);
            padding:8px 18px; cursor:pointer}
   #hintBtn.off{color:var(--dim); border-color:var(--dim); cursor:not-allowed}
+  /* ⭐ 버튼에서 숫자를 뗐습니다 (2026.09.03 사용자) — 버튼은 「힌트」 하나로 두고
+     남은 개수는 **옆에 따로** 셉니다.
+     ⛔ 네모 세 칸으로 세던 안은 폐기 — **음절 힌트의 네모와 구별이 안 됐습니다**
+        (2026.09.03 사용자 "힌트 표기를 네모로 하니까 음절 힌트와 차이가 없어").
+        같은 화면에 흰 네모가 두 뜻으로 있으면 안 됩니다 → 글자로 셉니다 */
+  #hintLeft{font-size:20px; color:var(--dim); letter-spacing:.04em}
+  #hintLeft b{color:var(--name); font-weight:400}
   /* 쓴 힌트는 지워지지 않고 쌓입니다 — 값을 치른 것이 눈에 남아 있어야 합니다 */
-  #hints{margin-top:22px; min-height:64px; display:flex; flex-direction:column;
-         align-items:center; gap:10px; font-size:24px; line-height:1}
+  /* ⭐ 가운데 맞춤을 버리고 **왼쪽 맞춤**입니다 (2026.09.03 사용자 "중앙정렬로 힌트가
+     나와서 가독성이 떨어져") — 줄마다 시작이 어긋나면 눈이 매번 처음을 다시 찾습니다 */
+  #hints{margin-top:18px; min-height:40px; max-height:300px; overflow-y:auto;
+         width:350px; display:flex; flex-direction:column; align-items:flex-start; gap:9px;
+         font-size:18px; line-height:1}
   #hints .h{display:flex; align-items:center; gap:10px; color:var(--name)}
   #hints .h .k{color:var(--line)}
   /* 어절 사이를 크게 벌립니다 — 「세 글자 + 세 글자」가 한눈에 갈려야 합니다 */
-  .boxes{display:flex; gap:28px}
-  .boxes .grp{display:flex; gap:6px}
-  .boxes i{display:block; width:20px; height:20px; background:var(--name)}
+  .boxes{display:flex; gap:22px}
+  .boxes .grp{display:flex; gap:5px}
+  .boxes i{display:block; width:18px; height:18px; background:var(--name)}
+
+  /* ── 판 그림 (코드 705 · 한 판) — 사분면 하나를 고르는 자리 ──
+     ⭐ 격자만 정사각으로 그립니다. 실물 종이는 세로로 길지만(546×792) 격자는 20×20
+        정사각이라, 종이 모양을 그리면 십자선이 종이 한가운데가 아니어서 어긋나 보입니다.
+     ⛔ 글자는 안 그립니다 — 폰에 음절이 뜨면 포스터를 안 읽고도 단어가 보입니다 */
+  #board{width:300px; height:300px; margin-top:26px; position:relative;
+         display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+         transform-origin:50% 50%}
+  #board.one{gap:0}
+  #board.tiles{gap:18px}
+  .qd{position:relative; background:var(--name); cursor:pointer; overflow:hidden}
+  /* ⭐ 여백이 두 그림을 가릅니다.
+     · 붙은 한 장 — 흰 여백이 **판 바깥 테두리에만** 있습니다. 자르고 붙였으니
+       조각 사이 여백은 사라졌고 격자가 이음매를 가로질러 이어집니다.
+     · 넷으로 떨어진 타일 — 조각마다 **자기 여백과 재단선**을 그대로 답니다. */
+  #board.one .qd[data-q="0"]{padding:16px 0 0 16px}
+  #board.one .qd[data-q="1"]{padding:16px 16px 0 0}
+  #board.one .qd[data-q="2"]{padding:0 0 16px 16px}
+  #board.one .qd[data-q="3"]{padding:0 16px 16px 0}
+  #board.tiles .qd{padding:11px; outline:1px dashed var(--line); outline-offset:6px}
+  .qd svg{display:block; width:100%; height:100%}
+  .qd.done{background:var(--bg-2)}          /* 다 모은 구역은 채워서 닫습니다 */
+  .qd.done svg{display:none}
+  .qd .cnt{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+           font-size:24px; color:var(--bg)}
+  .qd.done .cnt{color:var(--name)}
+  /* 제목은 왼쪽 위, 코드는 오른쪽 아래 — 실물에서 이음매를 피해 밀어 둔 그 자리입니다.
+     이 둘만으로 「폰 그림의 위 = 벽에 붙은 판의 위」가 잡힙니다 */
+  .qd .ttl2,.qd .cd{position:absolute; font-size:10px; color:var(--bg); letter-spacing:.06em}
+  .qd .ttl2{left:5px; top:3px}
+  .qd .cd{right:5px; bottom:3px}
+  /* 이음매 — A3 넉 장이 만나는 자리. 붙은 한 장으로 그릴 때만 긋습니다 */
+  #board.one .cross{position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(var(--bg),var(--bg)) center/4px 100% no-repeat,
+               linear-gradient(var(--bg),var(--bg)) center/100% 4px no-repeat}
+  #board.tiles .cross{display:none}
+  #qsum{margin-top:24px; font-size:24px; color:var(--line); height:24px}
+  #msgq{height:24px; margin-top:14px; font-size:24px}
+
+  /* ── 진행 — 이 장(또는 이 구역)의 n개 중 몇 개를 찾았나 ──
+     찾은 단어는 그 자리에 남습니다. 내가 이미 모은 것이라 폰이 새로 알려 주는 게 아닙니다.
+     ⛔ 아직 못 찾은 자리에 빈 칸을 깔지 않습니다 (2026.09.03 사용자 "빈칸은 없애는 게 좋아").
+        개수는 바로 위 「n개 중 k개」가 이미 말하고, 서랍도 같은 규칙입니다(8.12) */
+  #prog{font-size:24px; color:var(--name); height:24px}
+  #gw{margin-top:18px}                 /* 진행 줄과 지시문이 붙지 않게 */
+  #found{display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+         margin-top:12px; max-width:340px}
+  #found:empty{margin-top:0}
+  #found .je{background:var(--name); color:var(--bg); padding:2px 5px; font-size:18px}
+
+  /* ── 힌트 표 — 남은 단어마다 한 줄. 힌트를 살 때마다 칸이 오른쪽으로 붙습니다 ── */
+  /* ⭐ 세 열을 맞춥니다 — 음절 네모·방향·초성이 줄마다 같은 자리에서 시작합니다.
+     첫 열은 가장 긴 단어(3+3음절)에 맞춘 고정 폭 152px입니다 */
+  #hints .hrow{display:grid; grid-template-columns:152px 22px auto; gap:14px;
+               align-items:center; font-size:18px; line-height:1}
+  #hints .ar{color:var(--name); text-align:center}
+  #hints{scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+  #hints::-webkit-scrollbar{width:6px}
+  #hints::-webkit-scrollbar-track{background:transparent}
+  #hints::-webkit-scrollbar-thumb{background:var(--line); border-radius:0}
+  #hints .cho{color:var(--name); letter-spacing:.14em}
 
   /* ── 실제로 폰에서 돌 때는 목업 살림살이를 통째로 내립니다 ──
      ⭐ 스위치를 만들지 않았습니다. 손가락으로 만지는 기기면 실제 플레이, 마우스가 있으면 검토용입니다
@@ -242,9 +313,23 @@
       <div class="pad" id="pad"></div>
     </section>
 
+    <!-- 판 그림 — 코드 705(한 판)에서만 나옵니다. 사분면 하나를 고르면
+         그때부터는 3·4단어 판과 똑같이 동작합니다 -->
+    <section class="view" id="v5q">
+      <div class="mid">
+        <p class="guide" id="gq"></p>
+        <div id="board"></div>
+        <p class="msg" id="msgq"></p>
+        <p id="qsum"></p>
+        <button id="backq" class="back">뒤로</button>
+      </div>
+    </section>
+
     <!-- P5단 — 격자에서 찾은 단어를 스스로 적는 자리. 여기를 통과해야 반(反)으로 갑니다 -->
     <section class="view" id="v5w">
       <div class="mid" id="v5wmid">
+        <p id="prog"></p>
+        <div id="found"></div>
         <p class="guide" id="gw"></p>
         <div class="inrow">
           <label class="field" id="fieldw">
@@ -253,7 +338,7 @@
           <button id="entw" class="ent">ENT</button>
         </div>
         <p class="msg" id="msgw"></p>
-        <div id="hintRow"><button id="hintBtn">힌트 2개</button></div>
+        <div id="hintRow"><button id="hintBtn">힌트</button><span id="hintLeft"></span></div>
         <div id="hints"></div>
         <button id="backw" class="back">뒤로</button>
       </div>
@@ -283,6 +368,18 @@
 
 
 
+<div class="ctl">
+  <p class="help">숫자판에 그대로 넣어 보세요 — <b>211</b> 3단어 판 · <b>105</b> 4단어 판 · <b>705</b> 한 판(20×20)</p>
+  <div class="row"><span class="lbl">한 판 그림</span>
+    <button id="bs1" aria-pressed="false">붙은 한 장</button>
+    <button id="bs2" aria-pressed="true">넷으로 떨어진 타일</button>
+    <span class="lbl" style="margin-left:10px"></span>
+    <button id="reset">처음부터</button>
+    <button id="fill">다섯 개 모은 셈</button>
+  </div>
+  <p id="gauge"></p>
+</div>
+
 <script>
 /* ── 목업 전용 ────────────────────────────────────────────────
    수집 시간의 세 화면 — P4(코드) · P5(반대말·비슷한 말) · 서랍.
@@ -296,26 +393,46 @@
       코드는 난수 3자리이고 지시문 종류(A·B)도 단어마다 정해져 있습니다.
    ⛔ 판정하지 않습니다(6.5) — 무엇을 써도 수집됩니다. 정답표가 없습니다.     */
 
-/* d — 그 포스터의 격자에서 단어가 놓인 방향. 힌트 ①이 이걸 알려 줍니다.
-      `posters/build_review.py`가 낸 검토판에서 그대로 옮겨 왔습니다.
-   ⚠️ 격자를 다시 빌드하면 방향이 바뀔 수 있습니다 — 그때 이 표도 같이 갈아 끼웁니다 */
-const POSTERS = [
-{"c":"134","w":"응시","p":"A","d":"대각선 ↘"},{"c":"174","w":"포용","p":"B","d":"세로"},
-{"c":"179","w":"뜻밖의 설렘","p":"A","d":"대각선 ↗"},{"c":"304","w":"도전","p":"A","d":"대각선 ↘"},
-{"c":"312","w":"따뜻한 감수성","p":"B","d":"가로"},{"c":"324","w":"관점","p":"A","d":"가로"},
-{"c":"335","w":"변화의 흐름","p":"A","d":"대각선 ↗"},{"c":"396","w":"프로토타입","p":"A","d":"가로"},
-{"c":"398","w":"상상","p":"B","d":"대각선 ↘"},{"c":"409","w":"기존의 틀","p":"A","d":"세로"},
-{"c":"434","w":"사색","p":"A","d":"대각선 ↗"},{"c":"449","w":"영감의 언덕","p":"B","d":"세로"},
-{"c":"470","w":"본질","p":"A","d":"대각선 ↘"},{"c":"478","w":"인간 중심","p":"A","d":"대각선 ↘"},
-{"c":"482","w":"조화","p":"B","d":"대각선 ↗"},{"c":"507","w":"경계","p":"A","d":"세로"},
-{"c":"516","w":"모험가 정신","p":"A","d":"가로"},{"c":"536","w":"직관","p":"A","d":"대각선 ↗"},
-{"c":"625","w":"오래된 사유","p":"B","d":"세로"},{"c":"648","w":"감각의 언어","p":"A","d":"가로"},
-{"c":"672","w":"일상","p":"A","d":"세로"},{"c":"726","w":"물성","p":"B","d":"세로"},
-{"c":"744","w":"잊힌 흔적","p":"A","d":"가로"},{"c":"778","w":"역동성","p":"A","d":"대각선 ↘"},
-{"c":"831","w":"헤리티지","p":"B","d":"대각선 ↗"},{"c":"851","w":"지속되는 태도","p":"A","d":"대각선 ↗"},
-{"c":"903","w":"오래된 언어","p":"A","d":"대각선 ↗"},{"c":"906","w":"도시의 결","p":"B","d":"대각선 ↘"},
-{"c":"948","w":"손의 감각","p":"A","d":"가로"},{"c":"956","w":"방심의 시간","p":"B","d":"가로"}
+/* ⭐ 데이터 — `디알렉티카_포스터코드_테스트_260902.json`을 그대로 옮겼습니다.
+      **코드 19개가 서로 겹치지 않아 판을 고르는 스위치가 없습니다** —
+      코드만 넣으면 폰이 3단어 판(10장)·4단어 판(8장)·한 판(1장) 중 어디인지 압니다.
+   w — 그 장에 숨은 단어들. p 지시문(A 반대말 · B 비슷한 말) · d 격자에서 놓인 방향.
+   q — 한 판에서만 씁니다. 0 위 왼쪽 · 1 위 오른쪽 · 2 아래 왼쪽 · 3 아래 오른쪽.
+   ⚠️ 격자를 다시 빌드하면 방향과 사분면이 바뀝니다 — 그때 이 표도 같이 갈아 끼웁니다 */
+const SHEETS = [
+ {c:"211", v:"3단어", w:[{"w":"따뜻한 감수성","p":"B","d":"세로"}, {"w":"직관","p":"A","d":"세로"}, {"w":"잊힌 흔적","p":"A","d":"가로"}]},
+ {c:"227", v:"3단어", w:[{"w":"오래된 언어","p":"A","d":"가로"}, {"w":"영감의 언덕","p":"B","d":"가로"}, {"w":"일상","p":"A","d":"대각선 ↘"}]},
+ {c:"237", v:"3단어", w:[{"w":"오래된 사유","p":"B","d":"가로"}, {"w":"기존의 틀","p":"A","d":"세로"}, {"w":"관점","p":"A","d":"가로"}]},
+ {c:"354", v:"3단어", w:[{"w":"인간 중심","p":"A","d":"가로"}, {"w":"사색","p":"A","d":"세로"}, {"w":"방심의 시간","p":"B","d":"가로"}]},
+ {c:"356", v:"3단어", w:[{"w":"본질","p":"A","d":"대각선 ↗"}, {"w":"모험가 정신","p":"A","d":"세로"}, {"w":"헤리티지","p":"B","d":"세로"}]},
+ {c:"694", v:"3단어", w:[{"w":"도시의 결","p":"B","d":"세로"}, {"w":"감각의 언어","p":"A","d":"세로"}, {"w":"경계","p":"A","d":"대각선 ↘"}]},
+ {c:"697", v:"3단어", w:[{"w":"도전","p":"A","d":"대각선 ↗"}, {"w":"포용","p":"B","d":"세로"}, {"w":"지속되는 태도","p":"A","d":"대각선 ↗"}]},
+ {c:"865", v:"3단어", w:[{"w":"뜻밖의 설렘","p":"A","d":"세로"}, {"w":"상상","p":"B","d":"가로"}, {"w":"손의 감각","p":"A","d":"대각선 ↗"}]},
+ {c:"881", v:"3단어", w:[{"w":"조화","p":"B","d":"세로"}, {"w":"변화의 흐름","p":"A","d":"대각선 ↘"}, {"w":"역동성","p":"A","d":"대각선 ↘"}]},
+ {c:"894", v:"3단어", w:[{"w":"응시","p":"A","d":"세로"}, {"w":"물성","p":"B","d":"대각선 ↘"}, {"w":"프로토타입","p":"A","d":"대각선 ↗"}]},
+ {c:"105", v:"4단어", w:[{"w":"감각의 언어","p":"A","d":"대각선 ↘"}, {"w":"도전","p":"A","d":"대각선 ↘"}, {"w":"사색","p":"A","d":"세로"}, {"w":"따뜻한 감수성","p":"B","d":"가로"}]},
+ {c:"413", v:"4단어", w:[{"w":"변화의 흐름","p":"A","d":"대각선 ↘"}, {"w":"잊힌 흔적","p":"A","d":"가로"}, {"w":"영감의 언덕","p":"B","d":"대각선 ↘"}, {"w":"직관","p":"A","d":"대각선 ↘"}]},
+ {c:"424", v:"4단어", w:[{"w":"오래된 사유","p":"B","d":"대각선 ↘"}, {"w":"프로토타입","p":"A","d":"가로"}, {"w":"손의 감각","p":"A","d":"세로"}, {"w":"일상","p":"A","d":"세로"}]},
+ {c:"473", v:"4단어", w:[{"w":"방심의 시간","p":"B","d":"세로"}, {"w":"본질","p":"A","d":"가로"}, {"w":"모험가 정신","p":"A","d":"세로"}, {"w":"역동성","p":"A","d":"세로"}]},
+ {c:"495", v:"4단어", w:[{"w":"관점","p":"A","d":"세로"}, {"w":"응시","p":"A","d":"세로"}, {"w":"지속되는 태도","p":"A","d":"세로"}, {"w":"헤리티지","p":"B","d":"세로"}]},
+ {c:"652", v:"4단어", w:[{"w":"뜻밖의 설렘","p":"A","d":"세로"}, {"w":"경계","p":"A","d":"세로"}, {"w":"도시의 결","p":"B","d":"세로"}, {"w":"인간 중심","p":"A","d":"대각선 ↗"}]},
+ {c:"812", v:"4단어", w:[{"w":"조화","p":"B","d":"대각선 ↗"}, {"w":"포용","p":"B","d":"세로"}, {"w":"오래된 언어","p":"A","d":"가로"}]},
+ {c:"843", v:"4단어", w:[{"w":"물성","p":"B","d":"대각선 ↘"}, {"w":"기존의 틀","p":"A","d":"대각선 ↗"}, {"w":"상상","p":"B","d":"가로"}]},
+ {c:"705", v:"한판", w:[{"w":"관점","p":"A","d":"가로","q":0}, {"w":"인간 중심","p":"A","d":"가로","q":1}, {"w":"물성","p":"B","d":"대각선 ↘","q":1}, {"w":"프로토타입","p":"A","d":"가로","q":0}, {"w":"따뜻한 감수성","p":"B","d":"대각선 ↘","q":1}, {"w":"역동성","p":"A","d":"세로","q":1}, {"w":"영감의 언덕","p":"B","d":"세로","q":1}, {"w":"변화의 흐름","p":"A","d":"가로","q":0}, {"w":"오래된 사유","p":"B","d":"대각선 ↘","q":1}, {"w":"경계","p":"A","d":"대각선 ↗","q":0}, {"w":"응시","p":"A","d":"대각선 ↘","q":0}, {"w":"방심의 시간","p":"B","d":"가로","q":0}, {"w":"포용","p":"B","d":"세로","q":0}, {"w":"잊힌 흔적","p":"A","d":"가로","q":0}, {"w":"조화","p":"B","d":"세로","q":1}, {"w":"일상","p":"A","d":"세로","q":1}, {"w":"기존의 틀","p":"A","d":"세로","q":2}, {"w":"모험가 정신","p":"A","d":"세로","q":3}, {"w":"오래된 언어","p":"A","d":"가로","q":2}, {"w":"도전","p":"A","d":"세로","q":3}, {"w":"뜻밖의 설렘","p":"A","d":"가로","q":3}, {"w":"사색","p":"A","d":"세로","q":3}, {"w":"본질","p":"A","d":"대각선 ↗","q":2}, {"w":"감각의 언어","p":"A","d":"세로","q":2}, {"w":"손의 감각","p":"A","d":"가로","q":3}, {"w":"헤리티지","p":"B","d":"세로","q":3}, {"w":"상상","p":"B","d":"대각선 ↗","q":2}, {"w":"직관","p":"A","d":"대각선 ↘","q":2}, {"w":"지속되는 태도","p":"A","d":"가로","q":3}, {"w":"도시의 결","p":"B","d":"가로","q":2}]}
 ];
+const QNAME = ["위 왼쪽", "위 오른쪽", "아래 왼쪽", "아래 오른쪽"];
+/* 판 셋에 같은 단어 30개가 들어 있습니다 — 그래서 **모은 것은 단어로 셉니다.**
+   판을 갈아 가며 테스트해도 같은 단어를 두 번 모으지 않습니다 */
+const ALLWORDS = [...new Set(SHEETS.flatMap(s => s.w.map(x => x.w)))];
+
+/* 「무리」 — 힌트와 진행이 걸리는 단위입니다.
+   3·4단어 판은 장 하나가 그대로 한 무리, 한 판은 사분면 넷이 각각 한 무리입니다 */
+const groupsOf = s => s.v === "한판"
+  ? [0,1,2,3].map(q => ({c:s.c, v:s.v, q, label:QNAME[q], words:s.w.filter(x => x.q === q)}))
+  : [{c:s.c, v:s.v, q:-1, label:"", words:s.w}];
+const gotSet  = () => new Set(pairs.map(p => p.w));
+const remain  = g => { const G = gotSet(); return g.words.filter(x => !G.has(x.w)); };
+
 const PROMPT = {A:["반대말", "이 단어의 ", "을 입력하세요"], B:["비슷한 말", "이 단어의 ", "을 입력하세요"]};
 /* 빈 슬롯은 안 깝니다 — 모은 줄만 그립니다 (2026.08.12 사용자) */
 const TYPE_MS = 60, BLINK = 500;
@@ -333,7 +450,7 @@ const MYTYPE = 1;                       /* 이 폰의 주인 — 목업에서는
 
 /* 걷어낸 조작줄 요소를 찾아도 죽지 않게 — 빈 자리를 돌려줍니다 */
 const $ = s => document.querySelector(s) || document.createElement("div");
-let code = "", pairs = [], mine = "", cur = null, back = "v4",
+let code = "", pairs = [], mine = "", cur = null, curSheet = null, curWord = null, back = "v4",
     caretOn = true, blink = null, timers = [], allDone = false;
 const later = (ms,fn) => timers.push(setTimeout(fn, ms));
 const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
@@ -401,21 +518,28 @@ function press(k){
 }
 function enter(){
   if(code.length < 3) return;
-  const found = POSTERS.find(p => p.c === code);
-  if(!found){                       /* ⑤ 없는 코드 — 튕겨냅니다 */
+  const sheet = SHEETS.find(s => s.c === code);
+  if(!sheet){                        /* ⑤ 없는 코드 — 튕겨냅니다 */
     say("없는 코드");
     shake();
     return;
   }
-  if(pairs.some(p => p.c === code)){ /* ⑥ 이미 모은 코드 — 가리킵니다. 흔들지 않습니다 */
-    say("수집 완료");
+  /* ⑥ ⭐ 코드 하나가 그 장의 정답을 전부 포괄합니다 (2026.09.03 사용자) —
+        **안 모은 단어가 남아 있으면 코드를 다시 받습니다.** 튕기는 것은 다 모았을 때뿐입니다 */
+  if(!remain({words:sheet.w}).length){
+    say("이 포스터는 다 모았습니다");
     blinkDrawer();
     code = ""; paintSlots(); paintPad();
     return;
   }
-  cur = found;                       /* ④ 맞음 — 3칸이 흰색으로 물들고 단어 입력으로 */
+  curSheet = sheet;                  /* ④ 맞음 — 3칸이 흰색으로 물듭니다 */
   paintSlots(true);
-  later(180, () => { code = ""; paintSlots(); paintPad(); toWord(); });
+  later(180, () => {
+    code = ""; paintSlots(); paintPad();
+    /* 한 판만 판 그림이 한 번 낍니다. 나머지는 곧장 단어 입력으로 */
+    if(sheet.v === "한판") toBoard();
+    else { cur = groupsOf(sheet)[0]; toWord(); }
+  });
 }
 function say(t){
   $("#msg").textContent = t;
@@ -433,6 +557,75 @@ function blinkDrawer(){
   [0,1,2,3].forEach(i => later(i*90, () => b.classList.toggle("flash", i%2 === 0)));
 }
 
+/* ── 판 그림 (코드 705 · 한 판) ─────────────────────────────────
+   코드를 넣으면 판 그림이 뜨고 **사분면 하나를 고릅니다.** 고르고 나면
+   그 구역(7~8단어)이 한 장처럼 동작해 3·4단어 판과 완전히 같아집니다.
+
+   ⭐ 고르기 전 넷은 서로 구별되지 않습니다 — 개수는 **고른 뒤에** 알려줍니다.
+      여기서 폰이 하는 일은 정보를 주는 게 아니라 **내가 어느 판 앞에 서 있는지 말하는 것**입니다.
+   ⭐ 한 번 다녀온 구역만 j/n을 답니다. 다 모은 구역은 채워서 닫습니다.        */
+/* ⭐ 「넷으로 떨어진 타일」로 정해졌습니다 (2026.09.03 사용자 "넷으로 떨어진 타일이 좋고").
+      진 안(one · 붙은 한 장)과 전환 버튼은 아직 지우지 않았습니다 — 견주던 자리라
+      한 번 더 보실 수 있게 두었습니다. 확정 정리할 때 같이 걷어냅니다 */
+let boardStyle = "tiles";            /* tiles 넷으로 떨어진 타일 · one 붙은 한 장(폐기) */
+const seenQ = {};                    /* 다녀온 구역 — 여기에만 개수를 답니다 */
+
+/* 격자 질감 — 점으로만 냅니다. 한 구역이 10×10칸입니다 */
+function dotsSVG(){
+  let r = "";
+  for(let y=0;y<10;y++) for(let x=0;x<10;x++)
+    r += `<rect x="${x+0.33}" y="${y+0.33}" width="0.34" height="0.34" fill="var(--bg)"/>`;
+  return `<svg viewBox="0 0 10 10" preserveAspectRatio="none" shape-rendering="crispEdges">${r}</svg>`;
+}
+function paintBoard(){
+  const b = $("#board");
+  b.className = boardStyle;
+  b.style.transform = ""; b.style.transformOrigin = "50% 50%"; b.style.opacity = "1";
+  b.innerHTML = "";
+  const G = gotSet();
+  groupsOf(curSheet).forEach(g => {
+    const n = g.words.length, j = g.words.filter(x => G.has(x.w)).length;
+    const seen = seenQ[g.c + "/" + g.q] || j >= n;
+    const el = document.createElement("div");
+    el.className = "qd" + (j >= n ? " done" : "");
+    el.dataset.q = g.q;
+    el.innerHTML = dotsSVG()
+      + (g.q === 0 ? `<span class="ttl2">디알렉티카</span>` : "")
+      + (g.q === 3 ? `<span class="cd">${g.c}</span>` : "")
+      + (seen ? `<span class="cnt">${j}/${n}</span>` : "");
+    el.onclick = () => {
+      if(j >= n){ sayQ("이 구역은 다 모았습니다"); return; }
+      seenQ[g.c + "/" + g.q] = 1;
+      cur = g;
+      /* ⛔ 연출 없이 바로 넘어갑니다 (2026.09.03 사용자 "연출 없이 넘어가는 게 좋을 것 같아").
+            폐기 둘 — ①고른 구역이 확대되어 화면을 채움("너무 과한") ②한 프레임 반전.
+            코드 → 판 그림도 연출이 없어 이쪽과 결이 맞습니다 */
+      toWord();
+    };
+    b.appendChild(el);
+  });
+  const cross = document.createElement("i");
+  cross.className = "cross"; b.appendChild(cross);
+  const G2 = gotSet();
+  $("#qsum").textContent = `판 전체 ${ALLWORDS.length}개 중 ${G2.size}개`;
+}
+function toBoard(){
+  clearInterval(blink); clearAll();
+  show("v5q"); back = "v5q";
+  $("#msgq").textContent = "";
+  paintBoard();
+  const t = "찾을 구역 선택";
+  $("#gq").textContent = "";
+  for(let i=1;i<=t.length;i++)
+    later(i*TYPE_MS, () => $("#gq").textContent = t.slice(0,i));
+  gauge();
+}
+function sayQ(t){
+  $("#msgq").textContent = t;
+  later(1400, () => { if($("#msgq").textContent === t) $("#msgq").textContent = ""; });
+}
+$("#backq").onclick = () => { clearAll(); show("v4"); back = "v4"; };
+
 /* ── P5단 · 격자에서 찾은 단어 입력 ─────────────────────────────
    ⛔ 코드를 넣었다고 단어를 보여주지 않습니다 — 2026.08.14 사용자 「폐기야」.
       포스터를 실제로 읽은 사람만 반대말 자리로 넘어갑니다.
@@ -440,7 +633,9 @@ function blinkDrawer(){
 
 /* ⭐ 배점은 여기 한 줄뿐입니다 — 플레이 테스트 뒤에 이 줄만 갈아 끼웁니다.
       셈법을 여러 곳에 흩어 놓으면 폰·스크린·진행자 화면이 어긋납니다 (7.5) */
-const SCORE = [3, 2, 1];            /* 힌트 0회 · 1회 · 2회 */
+/* 🔴 숫자는 미정입니다 — 확정된 것은 「4단으로 늘린다」뿐입니다(2026.09.02 사용자
+      "배점은 늘리면 돼"). 아래 넷은 자리를 잡아 둔 임시 값입니다 */
+const SCORE = [4, 3, 2, 1];         /* 힌트 0회 · 1회 · 2회 · 3회 */
 
 let guess = "", hintsUsed = 0;
 
@@ -480,13 +675,45 @@ const matches = (input, word) => {
   return a.join("") === b.join("") || near(a, b);
 };
 
+/* 쓴 힌트는 무리마다 기억합니다 — 나갔다 돌아와도 값을 치른 것이 그대로 남습니다 */
+const hintMem = {};
+const gkey = g => g.c + "/" + g.q;
+
+/* 남은 단어를 늘어놓는 차례 — 데이터 차례는 격자에 놓인 차례라 그대로 쓰면
+   자리가 슬쩍 새어 나갑니다. 무리마다 고정된 순서로 한 번 섞습니다 */
+function shuffled(g){
+  const a = remain(g).slice();
+  let s = 0; for(const ch of gkey(g)) s = (s*31 + ch.charCodeAt(0)) % 99991;
+  for(let i=a.length-1;i>0;i--){ s = (s*1103515245 + 12345) % 2147483648;
+    const j = s % (i+1); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+
+/* ⭐ 진행 — 「n개 중 몇 개」 (2026.09.03 사용자). 찾은 단어는 그 자리에 남습니다 —
+      내가 이미 모은 것이라 폰이 새로 알려 주는 게 아닙니다 */
+function paintProg(){
+  const G = gotSet(), n = cur.words.length;
+  const got = cur.words.filter(x => G.has(x.w));
+  /* ⛔ 「위 왼쪽」 같은 구역 이름은 안 답니다 (2026.09.03 사용자 "이미 구역을 선택했으니까") —
+        고르고 들어온 자리라 이름이 한 겹 더입니다. 이름은 판 그림에서만 뜻이 있습니다 */
+  $("#prog").textContent = `${n}개 중 ${got.length}개 찾음`;
+  const box = $("#found"); box.innerHTML = "";
+  got.forEach(x => {
+    const s = document.createElement("span");
+    s.className = "je"; s.textContent = x.w;
+    box.appendChild(s);
+  });
+}
+
 function toWord(){
   clearInterval(blink); clearAll();
-  guess = ""; hintsUsed = 0; $("#hiddenw").value = "";
+  guess = ""; $("#hiddenw").value = "";
+  hintsUsed = hintMem[gkey(cur)] || 0;
   show("v5w"); back = "v5w";
   const f = $("#fieldw");
-  $("#gw").textContent = ""; $("#msgw").textContent = ""; $("#hints").innerHTML = "";
-  paintHintBtn(); $("#entw").className = "ent";
+  $("#gw").textContent = ""; $("#msgw").textContent = "";
+  paintProg(); paintHints(); paintHintBtn();
+  $("#entw").className = "ent";
   f.className = "field draw";        /* ⛔ innerHTML을 비우지 말 것 — 입력 칸이 지워집니다 */
 
   const t = "포스터에서 찾은 단어 입력";
@@ -510,7 +737,10 @@ $("#v5w").addEventListener("click", e => {
       오답과 오타를 가르지 않습니다. 둘 다 뜻은 하나 — 아직 안 열림 */
 $("#entw").onclick = () => {
   if(!guess.trim().length) return;
-  if(!matches(guess, cur.w)){ sayW("다시 보세요"); shakeW(); return; }
+  /* ⭐ 어느 단어를 찾아 왔는지 폰은 모릅니다 — 남은 것 전부와 견주고 걸리는 것을 집습니다 */
+  const hit = remain(cur).find(x => matches(guess, x.w));
+  if(!hit){ sayW("다시 보세요"); shakeW(); return; }
+  curWord = hit;
   clearInterval(blink); clearAll();
   const f = $("#fieldw");
   f.style.background = "var(--name)";          /* 맞음 — 칸이 흰색으로 물듭니다 */
@@ -529,33 +759,47 @@ function shakeW(){
   }));
 }
 
-/* 힌트 — 두 번까지. 쓴 것은 지워지지 않고 쌓입니다.
-   ① 방향   ② 글자 수를 네모로. 두 어절이면 사이를 띄워 나눔까지 보입니다.
-   ⭐ 버튼에 **남은 개수**를 답니다 — 더 있는 줄 모르고 안 쓰는 사람이 생깁니다
-      (2026.08.14 사용자 "힌트가 몇개인지 보여주는 게 좋을 것 같아") */
-const HINT_MAX = 2;
+/* ── 힌트 — 세 단 (2026.09.02 사용자) ────────────────────────────
+   ① 음절 수(띄어쓰기까지) → ② 방향 → ③ 초성.
+   ⭐ 힌트는 단어 하나가 아니라 **그 무리 전체**에 걸립니다 — 한 번 누르면
+      남은 3~8개 것이 한꺼번에 나옵니다. 남은 단어마다 한 줄이고,
+      살 때마다 그 줄에 칸이 오른쪽으로 하나씩 붙습니다.
+   ⛔ 8.14의 두 단(방향 → 글자 수)은 폐기됐습니다 — 순서도 뒤집혔습니다.
+   ⭐ 버튼에 남은 개수를 답니다 (2026.08.14 사용자 "힌트가 몇개인지 보여주는 게 좋을 것 같아") */
+const HINT_MAX = 3;
 const ARROW = {"가로":"→", "세로":"↓", "대각선 ↘":"↘", "대각선 ↗":"↗"};
+const CHO_OF = w => [...w].map(ch => {
+  const o = ch.charCodeAt(0) - 0xAC00;
+  return (o >= 0 && o < 11172) ? CHO_[Math.floor(o/588)] : ch;
+}).join("");
 function paintHintBtn(){
   const left = HINT_MAX - hintsUsed;
-  $("#hintBtn").textContent = `힌트 ${left}개`;
+  $("#hintBtn").textContent = "힌트";
   $("#hintBtn").className = left ? "" : "off";
+  /* 버튼 밖에서 글자로 셉니다 — 네모는 음절 힌트가 이미 쓰고 있습니다.
+     쓴 개수 / 전체 (2026.09.03 사용자 "1/n 이런 스타일로 해줘") */
+  $("#hintLeft").innerHTML = `<b>${hintsUsed}</b>/${HINT_MAX}`;
+}
+function paintHints(){
+  const box = $("#hints"); box.innerHTML = "";
+  if(!hintsUsed) return;
+  shuffled(cur).forEach(x => {
+    const r = document.createElement("div"); r.className = "hrow";
+    /* ① 음절 수 — 두 어절이면 사이를 벌려 나눔까지 보입니다 */
+    const grp = x.w.split(" ")
+      .map(g => `<span class="grp">${[...g].map(() => "<i></i>").join("")}</span>`).join("");
+    let s = `<span class="boxes">${grp}</span>`;
+    if(hintsUsed >= 2) s += `<span class="ar">${ARROW[x.d]}</span>`;   /* ② 방향 */
+    if(hintsUsed >= 3) s += `<span class="cho">${CHO_OF(x.w)}</span>`; /* ③ 초성 */
+    r.innerHTML = s;
+    box.appendChild(r);
+  });
 }
 $("#hintBtn").onclick = () => {
   if(hintsUsed >= HINT_MAX) return;
   hintsUsed++;
-  const h = document.createElement("div");
-  h.className = "h";
-  if(hintsUsed === 1){
-    /* 네 방향 모두 화살표를 답니다 — 대각선만 화살표가 있으면 가로·세로가
-       덜 알려 준 것처럼 보입니다 (2026.08.14 사용자) */
-    h.innerHTML = `<span class="k">방향</span>`
-                + `<span>${cur.d.split(" ")[0]} ${ARROW[cur.d]}</span>`;
-  } else {
-    const grp = cur.w.split(" ")
-      .map(g => `<span class="grp">${[...g].map(() => "<i></i>").join("")}</span>`).join("");
-    h.innerHTML = `<span class="k">글자 수</span><span class="boxes">${grp}</span>`;
-  }
-  $("#hints").appendChild(h);
+  hintMem[gkey(cur)] = hintsUsed;
+  paintHints();
   paintHintBtn();
   $("#hiddenw").focus();
   gauge();
@@ -578,7 +822,7 @@ function toP5(){
 
   /* ① 단어가 위에서 떨어져 내려와 자리에 박힙니다 (칸 단위로 뚝뚝) */
   const DROP = 6;
-  w.textContent = cur.w;
+  w.textContent = curWord.w;
   for(let i=0;i<=DROP;i++)
     later(i*40, () => {
       w.style.transform = `translateY(${Math.round((1 - i/DROP) * -80)}px)`;
@@ -586,7 +830,7 @@ function toP5(){
     });
 
   /* ② 지시문이 한 글자씩 찍힙니다 — 「반대말」·「비슷한 말」만 흰색 */
-  const [key, pre, post] = PROMPT[cur.p];
+  const [key, pre, post] = PROMPT[curWord.p];
   const full = pre + key + post;
   const A = 40*DROP + 120;
   for(let i=1;i<=full.length;i++)
@@ -626,10 +870,10 @@ $("#ent").onclick = () => {
   if(!mine.length) return;
   clearInterval(blink); clearAll();
   /* h — 이 단어를 찾는 데 쓴 힌트 수. pt — 그래서 받은 점수(SCORE) */
-  pairs.push({c:cur.c, w:cur.w, m:mine, h:hintsUsed, pt:SCORE[hintsUsed]});
+  pairs.push({c:cur.c, q:cur.q, w:curWord.w, m:mine, h:hintsUsed, pt:SCORE[hintsUsed]});
   /* 진행자 화면이 받아 적습니다 — 세는 곳이 하나여야 스크린과 어긋나지 않습니다 */
   const nth = pairs.length;                    /* 이 쌍이 몇 번째인가 */
-  Bus.sayUntil({pair:{id:Bus.me(), nth, code:cur.c, word:cur.w, mine,
+  Bus.sayUntil({pair:{id:Bus.me(), nth, code:cur.c, word:curWord.w, mine,
                       hints:hintsUsed, pt:SCORE[hintsUsed]}},
                b => ((((b.ack||{})[Bus.me()]||{}).p)||[]).includes(nth));
   /* 폰 안에도 적어 둡니다 — P6가 이 쌍으로 카드를 만듭니다 (6.4 ⑦) */
@@ -644,10 +888,10 @@ $("#ent").onclick = () => {
   /* ② 두 단어가 마주 보며 한 번 붙고 한 프레임 번쩍합니다 */
   const JOIN = 220;
   fly.style.display = "block";
-  fly.innerHTML = `<span class="je">${cur.w}</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ban">${mine}</span>`;
+  fly.innerHTML = `<span class="je">${curWord.w}</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ban">${mine}</span>`;
   place(fly, W/2, H/2, 1);
   later(JOIN - 60, () => {
-    fly.innerHTML = `<span class="je">${cur.w}</span> : <span class="ban">${mine}</span>`;
+    fly.innerHTML = `<span class="je">${curWord.w}</span> : <span class="ban">${mine}</span>`;
     fly.style.filter = "brightness(2)";
   });
   later(JOIN, () => fly.style.filter = "brightness(1)");
@@ -665,7 +909,7 @@ $("#ent").onclick = () => {
         mid.classList.remove("gone");
         show("v4"); back = "v4";      /* 화면이 P4로 바뀌면서 */
         blinkDrawer();                /* 서랍 버튼에 박히며 번쩍 */
-        if(pairs.length >= POSTERS.length) finishAll();
+        if(gotSet().size >= ALLWORDS.length) finishAll();
         gauge();
       }
     });
@@ -755,6 +999,9 @@ function finishAll(){
 function start(){
   clearAll(); clearInterval(blink);
   code = ""; pairs = []; mine = ""; allDone = false;
+  cur = null; curSheet = null; curWord = null;
+  Object.keys(seenQ).forEach(k => delete seenQ[k]);
+  Object.keys(hintMem).forEach(k => delete hintMem[k]);
   $("#hslot").innerHTML = emblemSVG(MYTYPE, 22);
   $("#msg").textContent = ""; $("#g4").textContent = ""; $("#toast").classList.remove("on");
   buildPad(); paintSlots(); show("v4"); back = "v4";
@@ -762,27 +1009,25 @@ function start(){
   const g = "포스터 코드 입력";
   for(let i=1;i<=g.length;i++)
     later(i*TYPE_MS, () => { if(!allDone) $("#g4").textContent = g.slice(0,i); });
-  /* 지시문 두 종류를 다 눌러 볼 수 있게 A·B 코드를 하나씩 적어 둡니다.
-     ⚠️ 여기 적힌 단어는 **조작줄에만** 있습니다 — 폰 화면에는 끝까지 안 뜹니다 */
-  const a = POSTERS.find(p => p.p === "A"), b = POSTERS.find(p => p.p === "B");
-  $("#hint").textContent =
-    `반대말(A)은 ${a.c}(단어 「${a.w}」) · 비슷한 말(B)은 ${b.c}(단어 「${b.w}」)`;
   gauge();
 }
 
 function gauge(extra){
   const view = $("#drawer").classList.contains("on") ? "서랍"
              : ($("#v5").classList.contains("on") ? "P5 반대말 입력"
-             : ($("#v5w").classList.contains("on") ? `P5단 단어 입력 (힌트 ${hintsUsed}/2)`
-             : "P4 코드 입력"));
+             : ($("#v5q").classList.contains("on") ? "판 그림 (사분면 고르기)"
+             : ($("#v5w").classList.contains("on") ? `단어 입력 (힌트 ${hintsUsed}/${HINT_MAX})`
+             : "P4 코드 입력")));
   const pts = pairs.reduce((s,p) => s + (p.pt || 0), 0);
+  const here = cur ? ` · 지금 무리 ${(cur.label ? cur.label + " " : "")}${remain(cur).length}개 남음` : "";
+  const n3 = SHEETS.filter(s => s.v === "3단어").length,
+        n4 = SHEETS.filter(s => s.v === "4단어").length;
   $("#gauge").textContent =
-    `폰 390×844 · 지금 ${view} · 모은 쌍 ${pairs.length}개 / 포스터 30장 · 수집 점수 ${pts}`
-    + ` · 배점 혼자 ${SCORE[0]} · 힌트①뒤 ${SCORE[1]} · 힌트②뒤 ${SCORE[2]}`
-    + ` · 코드 3자리(난수) · 지시문 A ${POSTERS.filter(p=>p.p==="A").length} · B ${POSTERS.filter(p=>p.p==="B").length}`
-    + ` · 글자 크기 — 포스터 단어 48px · 게임 이름/지시문/서랍 한 줄/뒤로/ENT 24px`
-    + ` · 서랍은 모은 줄만(빈 슬롯 없음) · 긴 줄은 자르지 않고 줄을 넘김`
-    + ` · 알림 1·2·3위 + 팀, 둘 다 ${(TOAST_MS/1000).toFixed(1)}초`
+    `폰 390×844 · 지금 ${view}${here}`
+    + ` · 모은 단어 ${gotSet().size} / ${ALLWORDS.length}개 · 수집 점수 ${pts}`
+    + ` · 판 셋 — 3단어 ${n3}장 · 4단어 ${n4}장 · 한 판 20×20 1장(8·8·7·7)`
+    + ` · 힌트 3단 음절 수→방향→초성, 무리 전체에 걸림`
+    + ` · 배점 ${SCORE.join("·")} 🔴임시`
     + (extra ? ` · 키보드까지 ${(extra/1000).toFixed(1)}초` : "");
 }
 
@@ -792,23 +1037,25 @@ const PAD2 = true;
 
 $("#reset").onclick = start;
 $("#rank1").onclick  = () => toast(1,1);
-$("#rank1b").onclick = () => toast(1,2);
-$("#rank1c").onclick = () => toast(1,3);
 $("#rank2").onclick  = () => toast(2);
+/* 판 그림 두 안을 견주는 자리 — 확정되면 진 쪽 코드와 이 버튼을 같이 지웁니다 */
+function setBoardStyle(s){
+  boardStyle = s;
+  $("#bs1").setAttribute("aria-pressed", s === "one");
+  $("#bs2").setAttribute("aria-pressed", s === "tiles");
+  if($("#v5q").classList.contains("on")) paintBoard();
+}
+$("#bs1").onclick = () => setBoardStyle("one");
+$("#bs2").onclick = () => setBoardStyle("tiles");
+/* 한 판을 반쯤 모은 자리에서 그림을 보려고 — 위 왼쪽 다섯, 위 오른쪽 여덟(다 모음) */
 $("#fill").onclick = () => {
   start();
   later(50, () => {
-    POSTERS.slice(0,5).forEach((p,i) => pairs.push({c:p.c, w:p.w,
-      m:["차가운 계산","배척","익숙함","포기","서늘한 이성"][i],
-      h:[0,1,0,2,1][i], pt:SCORE[[0,1,0,2,1][i]]}));
+    const s = SHEETS.find(x => x.v === "한판");
+    const take = [...s.w.filter(x => x.q === 0).slice(0,5), ...s.w.filter(x => x.q === 1)];
+    take.forEach(x => pairs.push({c:s.c, q:x.q, w:x.w, m:"내가 쓴 말", h:0, pt:SCORE[0]}));
+    seenQ[s.c + "/0"] = 1; seenQ[s.c + "/1"] = 1;
     gauge();
-  });
-};
-$("#done").onclick = () => {
-  start();
-  later(50, () => {
-    POSTERS.forEach(p => pairs.push({c:p.c, w:p.w, m:"내가 쓴 말", h:0, pt:SCORE[0]}));
-    finishAll(); gauge();
   });
 };
 
@@ -828,27 +1075,31 @@ const q = new URLSearchParams(location.search);
 /* ?play — 실제 플레이 차림. 조작줄과 가짜 키보드 자리를 내립니다.
    폰(손가락으로 만지는 기기)에서는 이걸 안 붙여도 자동으로 내려갑니다 */
 if(q.has("play")){ document.body.classList.add("play"); fit(); }
-if(q.get("v") === "5"){ cur = POSTERS[0]; later(60, toP5); }
-/* ?v=word — 단어 입력 화면. &h=1·2를 붙이면 힌트를 그만큼 쓴 상태로 뜹니다 */
+/* ?v=board — 판 그림을 바로 띄웁니다. &s=tiles를 붙이면 넷으로 떨어진 그림으로 */
+if(q.get("v") === "board"){
+  if(q.get("s") === "tiles") setBoardStyle("tiles");
+  curSheet = SHEETS.find(s => s.v === "한판");
+  later(60, toBoard);
+}
+/* ?v=word — 단어 입력 화면. &c=코드로 장을 고르고 &h=1·2·3으로 힌트를 그만큼 쓴 상태로 */
 if(q.get("v") === "word"){
-  cur = POSTERS[+(q.get("i") || 0)] || POSTERS[0];
+  curSheet = SHEETS.find(s => s.c === (q.get("c") || "211")) || SHEETS[0];
+  cur = groupsOf(curSheet)[0];
   later(60, toWord);
-  /* toWord()가 timers를 비우므로 여기서는 later()를 안 씁니다 */
   const h = +(q.get("h") || 0);
   for(let i=0;i<h;i++) setTimeout(() => $("#hintBtn").click(), 1600 + i*40);
 }
 if(q.get("v") === "done") later(80, () => {
-  POSTERS.forEach(p => pairs.push({c:p.c,w:p.w,m:"내가 쓴 말",h:0,pt:SCORE[0]}));
+  const s = SHEETS.find(x => x.v === "한판");
+  s.w.forEach(x => pairs.push({c:s.c, q:x.q, w:x.w, m:"내가 쓴 말", h:0, pt:SCORE[0]}));
   finishAll(); gauge(); });
 if(q.get("v") === "toast") later(80, () => toast(2));
-if(q.get("v") === "donedrawer") later(80, () => {
-  POSTERS.forEach(p => pairs.push({c:p.c, w:p.w, m:"차가운 계산 같은 긴 말"}));
-  finishAll(); openDrawer();
-});
 if(q.get("v") === "drawer"){
   later(60, () => {
-    POSTERS.slice(0,5).forEach((p,i) =>
-      pairs.push({c:p.c, w:p.w, m:["차가운 계산","배척","익숙함","포기","서늘한 이성"][i]}));
+    const s = SHEETS.find(x => x.v === "한판");
+    s.w.slice(0,5).forEach((x,i) =>
+      pairs.push({c:s.c, q:x.q, w:x.w, h:0, pt:SCORE[0],
+                  m:["차가운 계산","배척","익숙함","포기","서늘한 이성"][i]}));
     openDrawer();
   });
 }
