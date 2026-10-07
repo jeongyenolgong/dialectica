@@ -2,11 +2,12 @@
    bus.js — 모두가 같은 장부 한 권을 본다
 
    **장부(book)** — 지금 판의 전부. 진행자 화면만 적고, 나머지는 읽기만 한다.
-       { press: 0~7, players: [ {id, name, type, code} ] }
+       { press: 0~7, players: [ {id, name, code, start:[3], got:[{w,a}], ...} ] }
    **말(say)** — 스쳐 지나가는 한마디. 누구나 보낸다. 장부에 남지 않는다.
-       {join:{id}} · {name:{id, name}}
+       {join:{id}} · {name:{id, name}} · {collect} · {sentence} · {vote}
    폰은 「나를 넣어 주세요」라고 말하고, **진행자 화면이 받아 적어 장부에 올린다.**
-   유형 배정과 개인 코드가 한 곳에서 나와야 팀이 고르게 갈린다 (SSOT 2.1 · 5.5).
+   출발 비율과 개인 코드가 한 곳에서 나와야 겹치지 않는다.
+   ⭐ 2026.10.07 — 팀이 없어졌습니다. 전부 개인전입니다.
 
    ⭐ 장부를 어디에 두느냐가 셋이고 **스스로 고른다** (SSOT 2.4)
      ① 노트북       `server.py`가 켜져 있을 때. 인터넷 없이 돈다. 워크숍 당일용
@@ -16,7 +17,7 @@
    화면 대응표(8.1)는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "260813-11";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261007-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
@@ -36,7 +37,7 @@
   ];
   const PHONE = [
     null,                          /* 0 · P1→P2→P3를 참가자가 스스로 밟는 중이라 안 건드린다 */
-    "p4p5-collect.html",           /* 1 · P4 ⇄ P5 */
+    "p4p5-collect.html",           /* 1 · 단어 입력 ⇄ 조건 답 */
     "p3-wait.html",                /* 2 · 대기② */
     "p6-create.html",              /* 3 · P6 */
     "p3-wait.html",                /* 4 · 대기③ */
@@ -45,7 +46,6 @@
     null,                          /* 7 · 종료 */
   ];
 
-  const TYPE_NAMES = ["CULTURE VANGUARD", "CREATIVE RISK-TAKERS", "RELENTLESS INNOVATORS"];
   const here = location.pathname.split("/").pop() || "index.html";
   const role =
       here.startsWith("screen-")  ? "screen"
@@ -82,14 +82,18 @@
       target = "p1-identity.html";
     }
     if (!target) return;                          /* 그대로 둔다 */
+    /* ⭐ 아직 이름을 안 낸 사람은 입장 화면에 붙잡아 둡니다 — 판 중간에 처음 들어온 사람이
+       이름도 없이 수집 화면으로 끌려가면 순위에도 장부에도 「이름 없는 사람」으로 남습니다 */
+    if (role === "phone" && /^p[12]-/.test(here)) {
+      const mine = (book.players || []).find(p => p.id === window.Bus.me());
+      if (!mine || !mine.name) return;
+    }
 
     const now = new URLSearchParams(location.search);
     const url = new URL(target, location.href);
 
-    /* ⭐ 화면을 옮길 때 떨어지면 안 되는 값 둘.
-       room — 떨어지면 그 기기만 다른 장부를 보게 된다
-       t    — p3 대기가 유형을 잃으면 엠블럼이 바뀐다                        */
-    ["room", "t", "me", "dev"].forEach(k => {
+    /* ⭐ 화면을 옮길 때 떨어지면 안 되는 값 — room이 떨어지면 그 기기만 다른 장부를 보게 된다 */
+    ["room", "me", "dev"].forEach(k => {
       if (now.get(k) !== null && !url.searchParams.has(k)) url.searchParams.set(k, now.get(k));
     });
 
@@ -110,7 +114,10 @@
     /* ⭐ 진행자가 「종료」를 누르면 판 번호가 오릅니다 — 폰은 처음 화면으로 */
     if (typeof next.gen === "number") {
       if (lastGen !== null && next.gen !== lastGen && role === "phone") {
-        try { localStorage.removeItem("dlk.pairs." + window.Bus.me()); } catch (e) {}
+        try {
+          localStorage.removeItem("dlk.pairs." + window.Bus.me());
+          localStorage.removeItem("dlk.sents." + window.Bus.me());
+        } catch (e) {}
         lastGen = next.gen;
         return window.Bus.go("p1-identity.html");
       }
@@ -174,35 +181,13 @@
     /* 장부에서 나를 찾는다 */
     mine(b) { const id = this.me(); return ((b || book).players || []).find(p => p.id === id); },
 
-    /* 5.5 — 어떤 유형이 10명을 넘으면 그 유형만 1·2로 갈립니다 */
-    teams(P) {
-      const out = [];
-      [0, 1, 2].forEach(t => {
-        const mine = (P || []).filter(p => p.type === t);
-        if (mine.length > 10) {
-          out.push({ t, n:1, label:TYPE_NAMES[t] + " 1", members:mine.filter(p => (p.idxInType||0) % 2 === 0) });
-          out.push({ t, n:2, label:TYPE_NAMES[t] + " 2", members:mine.filter(p => (p.idxInType||0) % 2 === 1) });
-        } else {
-          out.push({ t, n:0, label:TYPE_NAMES[t], members:mine });
-        }
-      });
-      return out;
-    },
-
-    /* ⭐ 6.12 순위 알림 — P4·P5·P6에 같은 것이 걸립니다.
-       basis: 수집이면 "got"(=수집 점수), 창작이면 "sent".
-
-       ⭐ 2026.08.14 — **1분마다 그때의 순위를 재서 발표합니다.**
-          ⛔ 「등수가 바뀌었을 때만」으로 두었더니 **계속 1위인 사람에게는 두 번 다시
-             안 울렸습니다**(사용자가 플레이 테스트에서 잡음). 변동은 알리지 않습니다 —
-             「2위 → 1위」가 아니라 **지금 몇 위인지만**.
-       ⭐ 개인 먼저, 팀은 **시간차를 두고** 뒤에 옵니다 — 한꺼번에 쏘면 두 알림이 겹칩니다
-          (사용자 "동시에 알림이 오면 겹쳐서 오류가 생길 수 있으니까 · 서로 시간차를 두어야겠지").
-       개인은 1·2·3위일 때만, 팀도 1·2·3위일 때만 옵니다.                    */
+    /* ⭐ 6.12 순위 알림 — 수집 · 창작 화면에 같은 것이 걸립니다.
+       basis: 수집이면 "cnt"(=모은 단어 수), 창작이면 "sent"(=만든 문장 수).
+       ⭐ 1분마다 그때의 순위를 재서 발표합니다 — 변동은 알리지 않습니다(2026.08.14).
+       ⭐ 1·2·3위에게만 갑니다. 30명 전원에게 보내면 폰이 쉬지 않고 울립니다.
+       ⛔ 팀 알림은 없앴습니다 — 2026.10.07 팀전 폐지                         */
     watchRank(basis, onAnnounce) {
       const PERIOD = 60000;
-      /* ⚠️ 알림 하나가 화면에 3.5초 머뭅니다 — 그보다 길게 잡아야 앞엣것을 밀어내지 않습니다 */
-      const GAP = 4500;
       let latest = null;
       this.onState(b => { latest = b; });
 
@@ -211,25 +196,11 @@
         const P = (b.players || []).filter(p => p.name);
         const me = this.mine(b);
         if (!me || !P.length) return;
-
         const ranked = [...P].sort((x, y) => (y[basis]||0) - (x[basis]||0) || (x.at||0) - (y.at||0));
         const no = ranked.findIndex(p => p.id === me.id) + 1;
-        /* 아직 하나도 못 모은 사람에게는 등수를 말하지 않습니다 */
-        const mineNo = ((me[basis]||0) > 0 && no >= 1 && no <= 3) ? no : 0;
-
-        const cols = this.teams(P).map(c => ({ ...c,
-          avg: c.members.length ? c.members.reduce((n, m) => n + (m[basis]||0), 0) / c.members.length : 0,
-          at:  Math.max(0, ...c.members.map(m => m.at || 0)) }))
-          .sort((a, c) => c.avg - a.avg || a.at - c.at);
-        const t = cols.findIndex(c => c.members.some(p => p.id === me.id)) + 1;
-        const teamNo = (t >= 1 && t <= 3 && cols[t-1].avg > 0) ? t : 0;
-
-        if (mineNo) onAnnounce({ kind:"me", no: mineNo });
-        if (teamNo) setTimeout(() => onAnnounce({ kind:"team", no: teamNo,
-                                                 label: cols[teamNo-1].label }),
-                               mineNo ? GAP : 0);
+        /* 아직 하나도 못 한 사람에게는 등수를 말하지 않습니다 */
+        if ((me[basis]||0) > 0 && no >= 1 && no <= 3) onAnnounce({ kind:"me", no });
       };
-
       /* 모든 폰이 같은 순간에 울립니다 — 「발표」니까 벽시계에 맞춥니다 */
       setTimeout(function tick(){ announce(); setTimeout(tick, PERIOD); },
                  PERIOD - (Date.now() % PERIOD));
@@ -245,10 +216,16 @@
       /* ?me= 로 박아 주면 한 노트북에서 여러 사람을 흉내 낼 수 있습니다 (검사용) */
       const forced = new URLSearchParams(location.search).get("me");
       if (forced) return forced;
-      let id = localStorage.getItem("dlk.me");
-      if (!id) { id = "p" + Math.random().toString(36).slice(2, 9); localStorage.setItem("dlk.me", id); }
+      let id = null;
+      try { id = localStorage.getItem("dlk.me"); } catch (e) {}
+      if (!id) {
+        id = "p" + Math.random().toString(36).slice(2, 9);
+        try { localStorage.setItem("dlk.me", id); } catch (e) {}
+      }
       return id;
     },
+    /* 재접속 — 개인 코드로 찾은 사람의 이름표를 이 폰에 붙입니다 (6.11) */
+    becomeMe(id) { try { localStorage.setItem("dlk.me", id); } catch (e) {} },
     /* 화면을 옮긴다 — room을 떨어뜨리지 않는 유일한 통로 */
     go(file, params) {
       const url = new URL(file, location.href);
@@ -258,6 +235,9 @@
       if (forced) url.searchParams.set("me", forced);
       location.replace(url.pathname.split("/").pop() + url.search);
     },
+
+    /* 재접속 — 지금 단계에 맞는 폰 화면. 입장 중이면 대기 화면으로 */
+    phoneAt(n) { return PHONE[n] || "p3-wait.html"; },
 
     /* 「스크린」 버튼이 새 창을 열 때 — room을 떨어뜨리면 그 창만 다른 장부를 본다 */
     screenAt(n) {
@@ -294,7 +274,7 @@
     return new Promise((ok, no) => {
       if (window.mqtt) return ok();
       const s = document.createElement("script");
-      s.src = "mqtt.min.js?b=260813-11"; s.onload = () => ok(); s.onerror = no;
+      s.src = "mqtt.min.js?b=261007-1"; s.onload = () => ok(); s.onerror = no;
       document.head.appendChild(s);
     });
   }

@@ -1,0 +1,129 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   phone.css — 참가자 폰 화면이 함께 쓰는 틀 (2026.10.07)
+
+   ⭐ 폰에서는 화면을 꽉 채웁니다. 노트북에서 볼 때만 390×844 상자를 가운데 놓고 줄입니다.
+      ⛔ 예전에는 폰에서도 창 높이에 맞춰 화면 전체를 줄였습니다 — 안드로이드는 자판이
+         올라오면 창 높이가 줄어서 **화면 전체가 반쯤으로 쪼그라들었습니다.**
+         이제 자판이 올라오면 내용만 위로 밀립니다(phone.js가 높이를 잽니다).
+   ⭐ 글자 치는 곳은 전부 화면에 보이는 진짜 입력 칸입니다 — 편집·천지인·붙여넣기가 됩니다.
+      ⚠️ 입력 칸 글자는 16px 아래로 내리지 말 것 — iOS가 포커스될 때 화면을 확대합니다.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --bg:#101C8C; --bg-2:#0A1266; --line:#4E60D8; --name:#FFFFFF; --dim:#3A49A8;
+  --c0:#FFC83D; --c1:#FF7A8A; --c2:#5FE6B0; --c3:#FFFFFF;
+  --appH:844px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%; touch-action:manipulation; -webkit-text-size-adjust:100%}
+body{
+  background:var(--bg-2); color:var(--name);
+  font-family:"Galmuri11","Apple SD Gothic Neo",monospace;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  overflow:hidden;
+}
+button{font-family:inherit; cursor:pointer}
+
+/* ── 폰 한 대 ── */
+.phone{
+  position:relative; width:390px; height:844px; flex:0 0 auto;
+  background:var(--bg); overflow:hidden; display:flex; flex-direction:column;
+  transform-origin:50% 0;
+}
+/* 폰(손가락으로 만지는 기기)에서는 화면을 꽉 채웁니다 */
+body.touch .phone{width:100%; height:var(--appH); transform:none}
+/* 배경 스캔라인 */
+.phone::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:20;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,.045) 0 1px, transparent 1px 3px);
+}
+
+/* ── 헤더 — 게임 이름은 언제나 한가운데 ── */
+.head{flex:0 0 auto; height:52px; position:relative; border-bottom:1px solid var(--line);
+      display:flex; align-items:center}
+.head .ttl{position:absolute; left:0; right:0; text-align:center; font-size:22px;
+           letter-spacing:.1em; pointer-events:none}
+.head .side{position:absolute; right:10px; display:flex; gap:8px}
+/* 서랍 버튼 — 반전 블록. 테두리 상자는 눌리는 것으로 안 보였습니다 (2026.08.12) */
+.hbtn{font-size:18px; letter-spacing:.06em; background:var(--name); color:var(--bg);
+      border:0; padding:6px 8px}
+.hbtn.flash{background:var(--bg); color:var(--name); outline:2px solid var(--name)}
+
+/* ── 내 게이지 — 헤더 바로 아래에 늘 있습니다 ── */
+.strip{flex:0 0 auto; padding:8px 14px 9px; border-bottom:1px solid var(--line);
+       display:flex; flex-direction:column; gap:5px}
+.strip:empty{display:none}
+.g{display:grid; grid-template-columns:4.2em 1fr 2.4em; align-items:center; gap:10px;
+   font-size:14px; line-height:1}
+.g .nm{letter-spacing:.02em}
+.g .bar{display:grid; grid-template-columns:repeat(10,1fr); gap:3px; height:12px}
+.g .bar i{display:block; background:var(--dim)}
+.g .bar i.on{background:var(--gc)}
+.g .v{text-align:right; font-variant-numeric:tabular-nums}
+.g.full .v{color:var(--gc)}
+@keyframes gblink{0%,100%{opacity:1} 50%{opacity:.15}}
+.g.pulse .bar{animation:gblink .16s steps(2,end) 4}
+
+/* ── 가운데 ── */
+main{flex:1 1 auto; position:relative; min-height:0; overflow:hidden}
+.view{position:absolute; inset:0; display:none; overflow-y:auto; overflow-x:hidden;
+      -webkit-overflow-scrolling:touch}
+.view.on{display:block}
+/* 판은 가운데. 넘치면 위가 잘리지 않고 스크롤됩니다(auto 여백) */
+.mid{min-height:100%; display:flex; flex-direction:column; align-items:center;
+     padding:18px 16px 28px}
+.mid > :first-child{margin-top:auto}
+.mid > :last-child{margin-bottom:auto}
+.view::-webkit-scrollbar{width:6px}
+.view::-webkit-scrollbar-thumb{background:var(--line)}
+
+.guide{font-size:22px; letter-spacing:.03em; line-height:1.4; text-align:center;
+       word-break:keep-all; min-height:1.4em}
+.sub{font-size:16px; color:var(--line); letter-spacing:.03em; line-height:1.5; text-align:center;
+     word-break:keep-all}
+.msg{min-height:24px; margin-top:14px; font-size:18px; text-align:center; word-break:keep-all}
+
+/* 입력 — 흰 밑줄 + 진짜 입력 칸 */
+.field{width:100%; max-width:320px; border-bottom:2px solid var(--name); padding:0 4px 6px;
+       margin-top:26px}
+.field input{display:block; width:100%; font-family:inherit; font-size:24px; line-height:1.2;
+             color:var(--name); caret-color:var(--name); background:transparent;
+             border:0; outline:0; padding:4px 0; text-align:center; border-radius:0}
+.field input::placeholder{color:var(--line); opacity:1}
+textarea.box{display:block; width:100%; max-width:340px; min-height:140px; margin-top:20px;
+             padding:12px 14px; border:2px solid var(--name); border-radius:0;
+             background:transparent; color:var(--name); caret-color:var(--name);
+             font-family:inherit; font-size:22px; line-height:1.45; outline:0; resize:none}
+textarea.box::placeholder{color:var(--line)}
+
+/* 버튼 — 테두리 픽셀 버튼. 켜지면 흰 테두리 */
+.btn{font-size:22px; letter-spacing:.12em; padding:10px 26px; margin-top:22px;
+     background:transparent; color:var(--name); border:2px solid var(--name)}
+.btn.dim{color:var(--line); border-color:var(--line)}
+.row2{display:flex; gap:12px; justify-content:center; margin-top:22px}
+.row2 .btn{margin-top:0}
+
+/* 포스터 단어 — 흰 블록에 배경색으로 글자를 뚫습니다 */
+.je{background:var(--name); color:var(--bg); padding:2px 6px}
+
+/* ── 알림 — 위에서 내려왔다 올라갑니다 (6.12) ── */
+#toast{position:absolute; left:0; right:0; top:0; z-index:15; padding:14px 12px;
+       background:var(--name); color:var(--bg); font-size:22px; text-align:center;
+       line-height:1.45; transform:translateY(-100%); transition:transform .18s steps(3);
+       word-break:keep-all}
+#toast.on{transform:translateY(0)}
+#flash{position:absolute; inset:0; background:var(--name); display:none; z-index:14}
+
+/* ── 서랍 — 보기 전용 ── */
+.list{padding:14px 12px 30px; display:flex; flex-direction:column; gap:12px}
+.list .empty{color:var(--line); font-size:18px; text-align:center; margin-top:40px}
+.drow{display:flex; align-items:flex-start; gap:8px; font-size:20px; line-height:1.3;
+      border-bottom:1px solid var(--line); padding-bottom:10px; word-break:keep-all}
+.drow .no{width:2.2em; flex:0 0 auto}
+.drow .txt{flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px}
+.drow .k{font-size:14px; color:var(--line)}
+
+/* 흔들기 — 칸 단위로 뚝뚝(5.3) */
+.shake{animation:shake .3s steps(6,end) 1}
+@keyframes shake{0%{transform:translateX(8px)} 20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)} 60%{transform:translateX(-8px)} 80%{transform:translateX(4px)}
+  100%{transform:translateX(0)}}

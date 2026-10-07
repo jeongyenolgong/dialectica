@@ -65,7 +65,10 @@
   }
   footer button[aria-pressed="true"]{background:var(--name); color:var(--bg); border-color:var(--name)}
   #gauge{text-align:center; opacity:.8; margin-top:.4vh}
+  /* 2026.10.07 — 목업 조작줄은 프로젝터에 걸리면 안 됩니다. 장부가 비었을 때의 흉내만 남깁니다 */
+  footer{display:none !important}
 </style>
+<link rel="stylesheet" href="font.css?b=261007-1">
 </head>
 <body>
 
@@ -322,7 +325,7 @@ snapSizes();
 setup(parseInt(q.get("n")) > 0 ? +q.get("n") : 30);
 </script>
 
-<script src="bus.js?b=260813-11"></script>
+<script src="bus.js?b=261007-1"></script>
 <script>
 /* ══ 장부가 진실입니다 — 득표 상위 문장 셋 (9.4) ══════════════════════
    이름은 위 목업과 겹치면 안 됩니다 (겹치면 이 블록이 통째로 안 돕니다) */

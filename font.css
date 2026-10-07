@@ -1,0 +1,9 @@
+/* Galmuri11 — 픽셀 서체. 폰에는 이 서체가 없어서 묻어 둡니다.
+   fonts/galmuri11.woff2 는 원본(5.3MB)에서 자주 쓰는 한글 2,350자 · 영문 · 숫자 · 자모만 추린 것(50KB)입니다.
+   여기에 없는 드문 글자(예: 똠)는 그 글자만 기본 서체로 보입니다.
+   서체: Galmuri (SIL Open Font License) */
+@font-face{
+  font-family:"Galmuri11";
+  src:url("fonts/galmuri11.woff2") format("woff2");
+  font-display:swap;
+}

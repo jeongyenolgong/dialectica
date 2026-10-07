@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
+<title>디알렉티카 — 내 상태</title>
+<link rel="stylesheet" href="font.css?b=261007-1">
+<link rel="stylesheet" href="phone.css?b=261007-1">
+<style>
+  /* 출발 비율 — 화면의 주인공이라 크게 그립니다 */
+  .big{width:100%; max-width:340px; display:flex; flex-direction:column; gap:22px; margin-top:30px}
+  .big .r{display:flex; flex-direction:column; gap:8px}
+  .big .top{display:flex; justify-content:space-between; align-items:baseline; font-size:20px}
+  .big .top .v{font-size:28px; color:var(--gc); font-variant-numeric:tabular-nums}
+  .big .bar{display:grid; grid-template-columns:repeat(10,1fr); gap:4px; height:22px}
+  .big .bar i{display:block; background:var(--dim)}
+  .big .bar i.on{background:var(--gc)}
+  #who{font-size:20px; color:var(--line); min-height:1.4em}
+  #goal{margin-top:30px; visibility:hidden}
+  #next{visibility:hidden}
+</style>
+<script src="bus.js?b=261007-1"></script>
+<script src="data.js?b=261007-1"></script>
+<script src="phone.js?b=261007-1"></script>
+</head>
+<body>
+<!-- ─────────────────────────────────────────────────────────────────────
+     P2 내 상태 — 첫 스캔 때 뽑힌 세 캐릭터의 출발 비율을 보여 줍니다 (2026.10.07)
+     비율은 셋의 합 100 · 10 단위 · 각각 10~70. 진행자 화면이 뽑아 장부에 적습니다.
+     수집 단계의 목표는 이 세 게이지를 **각각 100까지** 채우는 것입니다.
+     ───────────────────────────────────────────────────────────────────── -->
+<div class="phone">
+  <div class="head"><span class="ttl">디알렉티카</span></div>
+  <main>
+    <div id="flash"></div>
+    <section class="view on">
+      <div class="mid">
+        <p id="who"></p>
+        <p class="guide" id="guide" style="margin-top:10px"></p>
+        <div class="big" id="big"></div>
+        <p class="sub" id="goal">단어를 모아 세 게이지를<br>모두 100으로 채우세요</p>
+        <button class="btn" id="next">다음</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let shown = false;
+
+$("#big").innerHTML = DLK.CHARS.map(c =>
+  `<div class="r" style="--gc:${c.color}"><div class="top"><span>${c.ko}</span><span class="v"></span></div>`
+  + `<div class="bar">${"<i></i>".repeat(10)}</div></div>`).join("");
+
+function paint(vals){
+  [...$("#big").children].forEach((r, i) => {
+    const v = vals[i];
+    r.querySelector(".v").textContent = v == null ? "" : v;
+    [...r.querySelectorAll(".bar i")].forEach((b, k) => b.classList.toggle("on", v != null && v >= (k+1)*10));
+  });
+}
+
+/* 연출 — 「당신을 읽는 중」 → 세 막대가 한 칸씩 차오르며 각자 자리에 섭니다 */
+function reveal(start, name){
+  if(shown) return; shown = true;
+  $("#who").textContent = name ? `${name} 님` : "";
+  const g = $("#guide");
+  g.textContent = "당신을 읽는 중";
+  [1,2,3].forEach(n => PH.later(n*220, () => g.textContent = "당신을 읽는 중" + "·".repeat(n)));
+  const A = 3*220 + 200;
+  for(let k = 1; k <= 7; k++)
+    PH.later(A + k*120, () => paint(start.map(v => Math.min(v, k*10))));
+  PH.later(A + 7*120 + 100, () => {
+    PH.flash(); paint(start);
+    g.textContent = "나의 출발점";
+  });
+  PH.later(A + 7*120 + 500, () => {
+    $("#goal").style.visibility = "visible";
+    $("#next").style.visibility = "visible";
+  });
+}
+
+$("#next").onclick = () => { PH.flash(); setTimeout(() => Bus.go("p3-wait.html"), 120); };
+
+Bus.onState(b => {
+  const me = Bus.mine(b);
+  if(!me){ $("#guide").textContent = "진행자 화면에 연결하는 중"; return; }
+  if(me.start) reveal(me.start, me.name);
+});
+</script>
+</body>
+</html>

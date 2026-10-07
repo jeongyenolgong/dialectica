@@ -1,0 +1,44 @@
+/* screen.css — 함께 보는 스크린(프로젝터) 다섯 장의 틀 (2026.10.07) */
+:root{
+  --bg:#101C8C; --bg-2:#0A1266; --line:#4E60D8; --name:#FFFFFF; --dim:#3A49A8;
+  --glyph:36px; --rank:24px; --stage:48px; --title:36px; --sub:24px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{background:var(--bg); color:var(--name); font-family:"Galmuri11","Apple SD Gothic Neo",monospace;
+     display:flex; flex-direction:column; padding:3vh 4vw; overflow:hidden}
+
+header{text-align:center; padding-bottom:2vh; border-bottom:1px solid var(--line); flex:0 0 auto}
+header .ko{font-size:var(--title); letter-spacing:.35em}
+header .la{font-size:var(--title); letter-spacing:.35em; color:var(--line); margin-left:1.2em}
+.stage{flex:0 0 auto; text-align:center; padding-top:3vh; font-weight:400}
+.stage .ko{font-size:var(--stage); letter-spacing:.12em}
+.stage .la{font-size:var(--stage); letter-spacing:.12em; color:var(--line); margin-left:1em}
+
+/* 세 덩어리 — 같은 크기, 1위 줄이 같은 높이 (9.2) */
+.three{flex:1 1 auto; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:4vh 0 2vh;
+       min-height:0; align-content:center; align-items:start}
+.three section{display:flex; flex-direction:column; align-items:center; min-height:0}
+h2{font-size:var(--sub); font-weight:400; letter-spacing:.06em; color:var(--line); text-align:center;
+   padding-bottom:4vh}
+ol{list-style:none; display:flex; flex-direction:column; gap:2.6vh}
+ol li{display:flex; align-items:center; gap:.8vw; line-height:1}
+.rank{color:var(--line); font-size:var(--rank); width:1.2em; flex:0 0 auto; text-align:right}
+.field{display:flex; flex:0 0 auto}
+
+/* 스플릿 플랩 한 칸 — 이음매 없이(2026.08.12) */
+.cell{position:relative; display:inline-block; width:1em; height:1.16em; font-size:var(--glyph);
+      text-align:center; overflow:hidden; transform-origin:50% 0; will-change:transform}
+.cell.narrow{width:.5em}
+
+/* 방 평균 막대 — 20칸. 한 칸 = 5 */
+.bars{display:flex; flex-direction:column; gap:2.4vh; width:100%; max-width:30vw}
+.bars .b{display:flex; flex-direction:column; gap:1vh}
+.bars .top{display:flex; justify-content:space-between; align-items:baseline; font-size:var(--rank)}
+.bars .top .v{color:var(--gc); font-variant-numeric:tabular-nums}
+.bars .cells{display:grid; grid-template-columns:repeat(20,1fr); gap:.25vw; height:2.2vh}
+.bars .cells i{display:block; background:var(--dim)}
+.bars .cells i.on{background:var(--gc)}
+
+/* 연습·검사용 표시 — 진짜 화면에서는 비어 있습니다 */
+#gauge{flex:0 0 auto; font-size:12px; color:var(--line); text-align:center; min-height:14px; letter-spacing:.06em}
