@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>디알렉티카 — 투표 · 결과</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
-<link rel="stylesheet" href="phone.css?b=261007-1">
+<link rel="stylesheet" href="phone.css?b=261012-1">
 <style>
   .cards{display:flex; flex-direction:column; gap:18px; margin-top:22px; width:100%; max-width:340px}
   .vcard{min-height:150px; padding:16px; border:2px solid var(--name); background:var(--bg);
@@ -57,10 +57,11 @@ const gs = PH.strip($("#strip"), true);
 const wantP9 = new URLSearchParams(location.search).get("v") === "9";
 let book = Bus.state(), duels = null, round = 0, live = false, onP9 = false;
 
-/* 문장 안 표기 — 고른 두 단어는 흰 블록 */
+/* 문장 안 표기 — 포스터 단어는 흰 블록, 내가 쓴 말은 밑줄 */
 function markup(x){
   let h = DLK.esc(x.text);
-  [x.a, x.b].filter(Boolean).forEach(w => { h = h.replace(DLK.esc(w), `<span class="je">${DLK.esc(w)}</span>`); });
+  if(x.a) h = h.replace(DLK.esc(x.a), `<span class="je">${DLK.esc(x.a)}</span>`);      /* 포스터 단어 — 흰 블록 */
+  if(x.b) h = h.replace(DLK.esc(x.b), `<span class="ban">${DLK.esc(x.b)}</span>`);     /* 내가 쓴 말 — 밑줄 */
   return h;
 }
 const S = i => (book.sentences || [])[i] || {text:"", a:"", b:"", name:""};

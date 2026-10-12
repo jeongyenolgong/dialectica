@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>디알렉티카 — 문장 창작</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
-<link rel="stylesheet" href="phone.css?b=261007-1">
+<link rel="stylesheet" href="phone.css?b=261012-1">
 <style>
   #count{font-size:16px; color:var(--line); letter-spacing:.04em; margin-bottom:16px; text-align:center}
   /* 내 단어 — 두 개를 고릅니다 */
@@ -14,10 +14,12 @@
          max-width:350px}
   .chip{font-size:18px; padding:6px 9px; background:transparent; color:var(--name);
         border:2px solid var(--line); line-height:1.1}
+  .chip .je{padding:1px 5px; margin-right:6px}
+  .chip.on .je{background:var(--bg); color:var(--name)}
   .chip.on{background:var(--name); color:var(--bg); border-color:var(--name)}
   .chip.used{color:var(--dim); border-color:var(--dim); text-decoration:line-through}
   #pick{margin-top:22px; font-size:20px; min-height:1.6em; text-align:center; line-height:1.6}
-  #pick .plus{margin:0 8px; color:var(--line)}
+  #pick .co{margin:0 8px; color:var(--line)}
   #ouMsg{margin-top:6px}
 </style>
 <script src="bus.js?b=261007-1"></script>
@@ -26,11 +28,14 @@
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
-     창작 (2026.10.07)
-       내가 모은 단어 중 **두 개**를 골라 문장 하나를 짓습니다.
-       ⭐ 같은 단어 쌍으로는 문장을 한 번만 씁니다(사용자 "여러번 만들지 않아. 단어 쌍마다 문장 1개").
+     창작 (2026.10.12 원래대로 — 정·반·합)
+       내가 모은 **쌍**(포스터 단어 : 내가 쓴 Opposite) 하나를 골라, 두 말이 다 들어간 문장 하나를 짓습니다.
+       ⭐ 쌍마다 문장 하나(사용자 "여러번 만들지 않아. 단어 쌍마다 문장 1개").
        ⭐ 문장 하나마다 OU 게이지 +10, 100에서 멈춥니다. OU는 이 단계에서 처음 나타납니다.
-       문장에는 고른 두 단어가 그대로 들어가야 합니다(띄어쓰기는 무시).
+       문장에는 포스터 단어와 내 Opposite이 그대로 들어가야 합니다(띄어쓰기는 무시).
+       ⛔ 10.07 판의 「포스터 단어 둘로 문장」은 폐기 — 내가 쓴 반(反)이 합(合)에 안 들어가 정·반·합이 끊겼다
+          (내부 테스트 지적, 2026.10.12 사용자 "원래 버전으로 되돌려서").
+       문장 안 표기 — 포스터 단어는 흰 블록, 내가 쓴 말은 밑줄(게임정의 6.6, 2026.08.13 확정).
      ───────────────────────────────────────────────────────────────────── -->
 <div class="phone">
   <div class="head">
@@ -48,7 +53,7 @@
         <div class="chips" id="chips"></div>
         <p id="pick"></p>
         <textarea class="box" id="text" autocomplete="off" autocapitalize="off" autocorrect="off"
-                  spellcheck="false" placeholder="두 단어를 넣어 문장을 쓰세요" hidden></textarea>
+                  spellcheck="false" placeholder="두 말을 넣어 문장을 쓰세요" hidden></textarea>
         <p class="msg" id="msg"></p>
         <button class="btn" id="ok" hidden>확인</button>
         <p class="sub" id="ouMsg"></p>
@@ -61,7 +66,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const ME = Bus.me();
-let book = Bus.state(), sel = [];
+let book = Bus.state(), sel = null;   /* 고른 쌍 {w, a} */
 const gs = PH.strip($("#strip"), true);
 
 const mySents = () => {
@@ -82,47 +87,40 @@ function show(id){
 
 function paint(){
   const s = PH.state(book);
-  const words = s.words.map(p => p.w);
+  const pairs = s.words.filter(p => p.a);              /* 내가 모은 쌍 — 포스터 단어 w · 내 답 a */
   const used = usedKeys();
   const n = mySents().length;
-  const all = words.length * (words.length - 1) / 2;
   gs.set(s.g, DLK.ouOf(n));
-  $("#count").textContent = `만든 문장 ${n} · 남은 쌍 ${Math.max(0, all - n)}`;
+  $("#count").textContent = `만든 문장 ${n} · 남은 쌍 ${Math.max(0, pairs.length - n)}`;
   $("#ouMsg").textContent = DLK.ouOf(n) >= DLK.FULL ? "OU 게이지가 가득 찼습니다" : "";
-  if(words.length < 2){
-    $("#guide").textContent = "모은 단어가 두 개 이상이어야 합니다";
+  if(!pairs.length){
+    $("#guide").textContent = "모은 단어가 있어야 합니다";
     $("#chips").innerHTML = ""; $("#text").hidden = true; $("#ok").hidden = true; return;
   }
-  if($("#guide").textContent === "모은 단어가 두 개 이상이어야 합니다") $("#guide").textContent = GUIDE;
+  if($("#guide").textContent === "모은 단어가 있어야 합니다") $("#guide").textContent = GUIDE;
+  if(sel && used.has(DLK.pairKey(sel.w, sel.a))) sel = null;
   $("#chips").innerHTML = "";
-  words.forEach(w => {
+  pairs.forEach(p => {
     const b = document.createElement("button");
-    b.className = "chip"; b.textContent = w;
-    const isOn = sel.includes(w);
-    /* 하나를 고른 상태면 — 그 단어와 이미 문장을 쓴 단어는 흐리게, 못 고릅니다 */
-    const dead = sel.length === 1 && !isOn && used.has(DLK.pairKey(sel[0], w));
-    /* 다른 모든 단어와 이미 문장을 쓴 단어도 못 고릅니다 */
-    const spent = words.every(o => o === w || used.has(DLK.pairKey(w, o)));
+    b.className = "chip";
+    b.innerHTML = `<span class="je">${DLK.esc(p.w)}</span>${DLK.esc(p.a)}`;
+    const isOn = sel && sel.w === p.w;
+    const spent = used.has(DLK.pairKey(p.w, p.a));      /* 이미 문장을 쓴 쌍 — 흐리게, 못 고릅니다 */
     if(isOn) b.classList.add("on");
-    if(dead || (spent && !isOn)) b.classList.add("used");
-    b.onclick = () => {
-      if(dead || (spent && !isOn)) return;
-      sel = isOn ? sel.filter(x => x !== w) : (sel.length >= 2 ? [sel[1], w] : [...sel, w]);
-      if(sel.length === 2 && used.has(DLK.pairKey(sel[0], sel[1]))) sel = [w];
-      paint();
-    };
+    if(spent) b.classList.add("used");
+    b.onclick = () => { if(spent) return; sel = isOn ? null : {w:p.w, a:p.a}; paint(); };
     $("#chips").appendChild(b);
   });
-  const two = sel.length === 2;
-  $("#pick").innerHTML = sel.map(w => `<span class="je">${DLK.esc(w)}</span>`).join(`<span class="plus">+</span>`);
-  $("#text").hidden = !two; $("#ok").hidden = !two;
+  $("#pick").innerHTML = sel ? `<span class="je">${DLK.esc(sel.w)}</span><span class="co">:</span>${DLK.esc(sel.a)}` : "";
+  $("#text").hidden = !sel; $("#ok").hidden = !sel;
 }
 
 $("#ok").onclick = () => PH.commit($("#text"), raw => {
   const text = DLK.tidy(raw);
-  const [a, b] = sel;
+  if(!sel) return;
+  const a = sel.w, b = sel.a;                           /* a = 포스터 단어 · b = 내가 쓴 Opposite */
   if(!text){ say("문장을 입력하세요"); return; }
-  if(!DLK.hasBoth(text, a, b)){ say("두 단어를 모두 넣어 주세요"); PH.shake($("#text")); return; }
+  if(!DLK.hasBoth(text, a, b)){ say("두 말을 모두 넣어 주세요"); PH.shake($("#text")); return; }
   if(usedKeys().has(DLK.pairKey(a, b))){ say("이미 문장을 쓴 쌍이에요"); return; }
   const local = PH.load("dlk.sents." + ME, []);
   const nth = mySents().length + 1;
@@ -131,7 +129,7 @@ $("#ok").onclick = () => PH.commit($("#text"), raw => {
   Bus.sayUntil({sentence:{id:ME, nth, a, b, text}},
                bk => ((((bk.ack||{})[ME]||{}).s)||[]).includes(nth));
   const ou = DLK.ouOf(nth);
-  sel = []; $("#text").value = ""; $("#msg").textContent = "";
+  sel = null; $("#text").value = ""; $("#msg").textContent = "";
   PH.flash();
   PH.toast(ou >= DLK.FULL && DLK.ouOf(nth - 1) < DLK.FULL ? "OU 게이지 100!" : `OU +${DLK.OU_STEP}`, 1600);
   paint(); gs.pulse(3);
@@ -147,14 +145,14 @@ function openDrawer(){
     const r = document.createElement("div"); r.className = "drow";
     r.innerHTML = `<span class="no">${String(S.length - k).padStart(2,"0")}</span>`
       + `<span class="txt"><span>${DLK.esc(x.text)}</span>`
-      + `<span class="k">${DLK.esc(x.a)} + ${DLK.esc(x.b)}</span></span>`;
+      + `<span class="k">${DLK.esc(x.a)} : ${DLK.esc(x.b)}</span></span>`;
     list.appendChild(r);
   });
   show("vD");
 }
 $("#drawerBtn").onclick = () => $("#vD").classList.contains("on") ? show("vS") : openDrawer();
 
-const GUIDE = "두 단어를 골라 문장을 만드세요";
+const GUIDE = "두 단어를 조합해서 문장을 만드세요";   /* 게임정의 6.6 사용자 문안 */
 PH.typeOut($("#guide"), GUIDE, 50);
 Bus.watchRank("sent", a => PH.toast(`현재 ${a.no}위`));
 Bus.onState(b => { book = b; if(document.activeElement !== $("#text")) paint(); });

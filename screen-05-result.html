@@ -14,6 +14,7 @@
   ol.s .rank{line-height:1.3; font-size:var(--sent)}
   .sent{font-size:var(--sent); line-height:1.35; word-break:keep-all}
   .sent .je{background:var(--name); color:var(--bg); padding:0 .2em}
+  .sent .ban{text-decoration:underline; text-underline-offset:.15em; text-decoration-thickness:2px}
   .by{font-size:calc(var(--sent) * .62); color:var(--line); margin-top:.5em}
   .right{display:flex; flex-direction:column; align-items:center}
   .right .bars{max-width:none}
@@ -44,7 +45,8 @@ const setBars = SC.bars(document.getElementById("bars"), [...DLK.CHARS, DLK.OU])
 let book = Bus.state();
 function markup(x){
   let h = DLK.esc(x.text);
-  [x.a, x.b].filter(Boolean).forEach(w => { h = h.replace(DLK.esc(w), `<span class="je">${DLK.esc(w)}</span>`); });
+  if(x.a) h = h.replace(DLK.esc(x.a), `<span class="je">${DLK.esc(x.a)}</span>`);      /* 포스터 단어 — 흰 블록 */
+  if(x.b) h = h.replace(DLK.esc(x.b), `<span class="ban">${DLK.esc(x.b)}</span>`);     /* 내가 쓴 말 — 밑줄 */
   return h;
 }
 function render(){

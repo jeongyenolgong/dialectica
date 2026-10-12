@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>디알렉티카 — 단어 수집</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
-<link rel="stylesheet" href="phone.css?b=261007-1">
+<link rel="stylesheet" href="phone.css?b=261012-1">
 <style>
   #prog{font-size:18px; color:var(--line); letter-spacing:.04em; text-decoration:underline;
         text-underline-offset:5px; cursor:pointer; margin-bottom:22px}
@@ -15,23 +15,32 @@
   #word .je{padding:4px 10px}
   #ckind{margin-top:14px; font-size:16px; color:var(--line); letter-spacing:.1em}
   #q{margin-top:22px}
-  /* 얻은 순간 — 어느 캐릭터 게이지가 올랐는지 그때 처음 드러납니다 */
-  #gainW{font-size:28px}
-  #gainN{font-size:56px; line-height:1; margin-top:26px; color:var(--gc)}
-  #gainC{font-size:24px; margin-top:14px; color:var(--gc)}
-  #gainNote{margin-top:18px}
+  /* 거리 구 — 내 답이 포스터 단어에서 얼마나 떨어져 있는지. 그 아래에 얻은 캐릭터(+20)가 그때 처음 드러납니다 */
+  #vS .mid{padding-top:10px}
+  #sWord{font-size:26px; line-height:1.2}
+  #cv{display:block; width:100%; max-width:340px; aspect-ratio:1/1; margin-top:4px}
+  #sMine{font-size:22px; color:#5FE6B0; letter-spacing:.03em; word-break:keep-all; text-align:center}
+  #sOut{font-size:13px; color:var(--line); margin-top:6px; letter-spacing:.04em; min-height:16px}
+  #gainN{font-size:40px; line-height:1; margin-top:10px; color:var(--gc)}
+  #gainC{font-size:20px; margin-top:6px; color:var(--gc)}
+  #gainNote{margin-top:8px}
+  #okS{margin-top:16px}
   .done-note{font-size:18px; color:var(--line); margin-top:24px; text-align:center}
 </style>
 <script src="bus.js?b=261007-1"></script>
 <script src="data.js?b=261012-1"></script>
 <script src="phone.js?b=261007-1"></script>
+<script src="sphere-table.js?b=261012-1"></script>
+<script src="sphere-lookup.js?b=261012-1"></script>
+<script src="sphere.js?b=261012-1"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
-     수집 (2026.10.07 초기판 복귀)
+     수집 (2026.10.07 초기판 복귀 · 10.12 거리 구)
        ① 포스터에서 찾은 단어를 입력 — 30개 전부와 견줍니다(관대한 대조)
-       ② 그 단어에 붙은 조건 하나에 답합니다 — 반대말 · 비슷한 말 · 색 · 질감
-       ③ 수집. 그 단어의 캐릭터 게이지가 +20 (이때 어느 캐릭터인지 처음 보입니다)
+       ② 그 단어의 Opposite을 씁니다 — 조건은 하나(2026.10.07 오후)
+       ③ 거리 구 — 내 답이 포스터 단어에서 얼마나 떨어졌나를 보고, 그 아래 캐릭터 게이지 +20 (이때 어느 캐릭터인지 처음 보입니다).
+          확인을 누르면 ①로 (2026.10.12 사용자 "구에서 두 단어간의 거리를 확인하고 확인 버튼을 누른 다음 새로운 단어를 입력")
      ⛔ 포스터 코드 · 힌트 · 팀은 없습니다(2026.10.07 사용자).
      ⛔ 답은 판정하지 않습니다 — 빈칸이거나 포스터 단어를 그대로 쓴 것만 돌려보냅니다.
      ───────────────────────────────────────────────────────────────────── -->
@@ -78,13 +87,17 @@
       </div>
     </section>
 
-    <!-- ③ 얻은 순간 -->
-    <section class="view" id="vG">
+    <!-- ③ 거리 구 + 얻은 캐릭터 -->
+    <section class="view" id="vS">
       <div class="mid">
-        <p id="gainW"></p>
+        <div id="sWord"></div>
+        <canvas id="cv"></canvas>
+        <p id="sMine"></p>
+        <p id="sOut"></p>
         <p id="gainN"></p>
         <p id="gainC"></p>
         <p class="sub" id="gainNote"></p>
+        <button class="btn" id="okS">확인</button>
       </div>
     </section>
 
@@ -175,9 +188,14 @@ function collect(x, a){
   const s1 = st();
   const after = s1.g ? s1.g[x.ch] : null;
   const C = DLK.CHARS[x.ch];
-  PH.clear(); show("vG");
-  $("#vG").style.setProperty("--gc", C.color);
-  $("#gainW").innerHTML = `<span class="je">${DLK.esc(x.w)}</span>`;
+  /* 거리 구 — 내 답의 자리. 판정은 없고, 지도 밖(어휘에 없는 말)이면 껍질 바깥에 놓입니다 */
+  SPHERE.poster(x.w);
+  const r = SPHERE.place(a);
+  PH.clear(); show("vS");
+  $("#vS").style.setProperty("--gc", C.color);
+  $("#sWord").innerHTML = `<span class="je">${DLK.esc(x.w)}</span>`;
+  $("#sMine").textContent = a;
+  $("#sOut").textContent = r.outside ? "아직 지도에 없는 말" : "";
   const full = before != null && before >= DLK.FULL;
   $("#gainN").textContent = full ? "FULL" : `+${DLK.STEP}`;
   $("#gainC").textContent = C.ko;
@@ -185,12 +203,13 @@ function collect(x, a){
   PH.flash();
   gs.set(s1.g, null); gs.pulse(x.ch);
   PH.blink($("#drawerBtn"));
-  PH.later(full ? 2000 : 1500, () => toWord(true));
+  SPHERE.start();
 }
+$("#okS").onclick = () => { SPHERE.stop(); toWord(true); };
 
 /* ── 서랍 — 내가 모은 단어와 내 답 ── */
 function openDrawer(){
-  $("#inW").blur(); $("#inC").blur();
+  $("#inW").blur(); $("#inC").blur(); SPHERE.stop();
   const list = $("#list");
   const ws = st().words;
   list.innerHTML = ws.length ? "" : `<p class="empty">아직 모은 단어가 없습니다</p>`;
@@ -228,9 +247,10 @@ Bus.onState(b => {
     const add = me.got.filter(p => !have.has(p.w));
     if(add.length) PH.save("dlk.pairs." + ME, mine.concat(add));
   }
-  if(!$("#vG").classList.contains("on")) paint();
+  if(!$("#vS").classList.contains("on")) paint();
 });
 
+SPHERE.mount($("#cv"));
 toWord();
 </script>
 </body>

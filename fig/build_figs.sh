@@ -7,3 +7,4 @@ OUT=${1:-.}; CH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; 
 "$CH" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=1250,320 --virtual-time-budget=3000 --timeout=20000 --screenshot="$OUT/fig-cond.png" "$B/fig-cond.html?t=$(date +%s)" 2>/dev/null
 ls -la "$OUT"/fig-*.png
 "$CH" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=1110,200 --virtual-time-budget=3000 --timeout=20000 --screenshot="$OUT/fig-dialectic.png" "$B/fig-dialectic.html?t=$(date +%s)" 2>/dev/null
+"$CH" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=830,900 --virtual-time-budget=5000 --timeout=20000 --screenshot="$OUT/fig-create.png" "$B/fig-create.html?t=$(date +%s)" 2>/dev/null

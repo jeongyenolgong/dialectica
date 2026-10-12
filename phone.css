@@ -104,6 +104,9 @@ textarea.box::placeholder{color:var(--line)}
 
 /* 포스터 단어 — 흰 블록에 배경색으로 글자를 뚫습니다 */
 .je{background:var(--name); color:var(--bg); padding:2px 6px}
+.ban{text-decoration:underline; text-underline-offset:4px; text-decoration-thickness:2px}
+/* hidden 속성이 display 규칙에 지지 않게 — 창작의 문장 칸이 쌍을 고르기 전에 보이던 어긋남(2026.10.12) */
+[hidden]{display:none !important}
 
 /* ── 알림 — 위에서 내려왔다 올라갑니다 (6.12) ── */
 #toast{position:absolute; left:0; right:0; top:0; z-index:15; padding:14px 12px;
