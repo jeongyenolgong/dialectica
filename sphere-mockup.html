@@ -17,13 +17,21 @@
   #cv{display:block; width:100%; max-width:358px; aspect-ratio:1/1; margin-top:8px}
   #sMine{font-size:22px; color:var(--mine); letter-spacing:.03em; word-break:keep-all; text-align:center}
   #tmp{font-size:13px; color:var(--line); margin-top:10px; letter-spacing:.04em}
+  /* 사이에 있는 말 — 후보 셋 + 직접 쓰기 (3번 목업, 2026.10.12) */
+  #midCap{font-size:14px; color:var(--line); margin-top:18px; letter-spacing:.06em}
+  .chips{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px; max-width:350px}
+  .chip{font-size:18px; padding:6px 10px; background:transparent; color:var(--name); border:2px solid var(--line); line-height:1.1}
+  .chip.on{background:var(--name); color:var(--bg); border-color:var(--name)}
+  #fM{margin-top:10px; max-width:260px}
+  #fM input{font-size:18px; text-align:center}
+  #close{margin-top:16px}
   :root{--core:#FFC83D; --mine:#5FE6B0}
 </style>
 <script src="data.js?b=261012-1"></script>
 <script src="phone.js?b=261007-1"></script>
-<script src="sphere-table.js?b=261012-1"></script>
+<script src="sphere-table.js?b=261012-4"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
-<script src="sphere.js?b=261012-1"></script>
+<script src="sphere.js?b=261012-6"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
@@ -59,6 +67,11 @@
         <canvas id="cv"></canvas>
         <p id="sMine"></p>
         <p id="tmp"></p>
+        <p id="midCap">사이에 있는 말</p>
+        <div class="chips" id="chips"></div>
+        <label class="field" id="fM">
+          <input id="inM" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="직접 쓰기">
+        </label>
         <button class="btn" id="close">닫기</button>
       </div>
     </section>
@@ -67,7 +80,9 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const POSTER = DLK.WORDS[Math.floor(Math.random() * DLK.WORDS.length)].w;   /* 목업 — 포스터 단어 하나를 아무거나 */
+/* 목업 — 포스터 단어 하나를 아무거나. 검증용으로 주소에 ?p=포스터단어 를 붙이면 그 단어로 고정됩니다 */
+const QP = new URLSearchParams(location.search).get("p");
+const POSTER = DLK.WORDS.some(x => x.w === QP) ? QP : DLK.WORDS[Math.floor(Math.random() * DLK.WORDS.length)].w;
 $("#word").innerHTML = `<span class="je">${DLK.esc(POSTER)}</span>`;
 $("#sWord").innerHTML = `<span class="je">${DLK.esc(POSTER)}</span>`;
 function show(id){ document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id === id)); }
@@ -82,8 +97,17 @@ $("#okC").onclick = () => PH.commit($("#inC"), raw => {
   $("#sMine").textContent = a;
   /* 목업에서만 — 어떻게 읽었는지 보여 줍니다. 실제 수집 화면에는 없습니다 */
   $("#tmp").textContent = r.outside ? "아직 지도에 없는 말" : (r.readAs !== a.replace(/\s+/g, " ") ? "「" + r.readAs + "」로 읽었습니다" : "");
+  /* 사이에 있는 말 — 후보 셋. 고르면 칩이 켜지고, 직접 쓰면 칩이 꺼집니다 */
+  $("#chips").innerHTML = ""; $("#inM").value = "";
+  SPHERE.ready().then(() => {
+    $("#midCap").textContent = SPHERE.hasVec() ? "사이에 있는 말" : "사이에 있는 말 (좌표 파일 없음 — 거친 자리)";   /* 목업 표시 */
+    SPHERE.between(3, POSTER).forEach(w => { const b = document.createElement("button"); b.className = "chip"; b.textContent = w;
+      b.onclick = () => { const on = b.classList.contains("on"); document.querySelectorAll(".chip").forEach(c => c.classList.remove("on")); if(!on) b.classList.add("on"); $("#inM").value = ""; };
+      $("#chips").appendChild(b); });
+  });
   show("vS"); SPHERE.start();
 });
+$("#inM").addEventListener("input", () => document.querySelectorAll(".chip").forEach(c => c.classList.remove("on")));
 $("#inC").addEventListener("keydown", e => { if(e.key === "Enter" && !e.isComposing) $("#okC").click(); });
 $("#close").onclick = () => { SPHERE.stop(); $("#inC").value = ""; show("vC"); };
 /* 검증용 — 주소 뒤에 #단어 를 붙이면 그 말을 친 것으로 바로 띄웁니다(헤드리스 촬영에 씁니다) */

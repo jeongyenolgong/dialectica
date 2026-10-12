@@ -23,10 +23,20 @@ window.SPHERE = (() => {
 
   /* ── 거리표 풀기 — 한 번만 ── */
   const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
-  let DIR = null, IDX = null;
+  let DIR = null, IDX = null, LVL = null, POOL = null, VEC = null, VD = 0;
+  /* 128차원 좌표 — sphere-vec.bin(단어 수 × 128, int8). 「사이에 있는 말」에만 쓰고, 없으면 3차원 자리로 대신합니다 */
+  const vecReady = (typeof SPH !== "undefined" && SPH.vdim)
+    ? fetch("sphere-vec.bin?b=" + (document.currentScript && /b=([\w-]+)/.exec(document.currentScript.src) || [0, "0"])[1])
+        .then(r => { if(!r.ok) throw new Error("sphere-vec.bin " + r.status); return r.arrayBuffer(); })
+        .then(b => { VEC = new Int8Array(b); VD = SPH.vdim; })
+        .catch(e => console.warn("128차원 좌표를 못 받아 3차원 자리로 대신합니다:", e.message))
+    : Promise.resolve();
   function table(){
     if(DIR) return;
     DIR = b64(SPH.dir); IDX = new Map(SPH.words.map((w, i) => [w, i]));
+    LVL = SPH.lvl ? b64(SPH.lvl) : null;
+    /* 중간 단어 후보를 뽑는 바탕 — 흔한 말만(기초사전 초급·중급, 영어는 NGSL). 한 글자는 뺍니다 */
+    POOL = SPH.words.map((w, i) => i).filter(i => (!LVL || LVL[i] <= 2) && SPH.words[i].length >= 2);
   }
 
   /* ── 포스터 단어마다 한 벌 — 흰 점 자리·숨·관계망. 같은 단어는 다시 안 만듭니다 ── */
@@ -61,7 +71,7 @@ window.SPHERE = (() => {
 
   /* ── 상태 ── */
   let cv = null, cx = null, W = 0, raf = 0, last = 0, ang = 0;
-  let cur = null, mine = null, mineLinks = [];
+  let cur = null, mine = null, mineLinks = [], mineText = "", mineLemmas = [], marks = [];
 
   function mount(canvas){
     cv = canvas; cx = cv.getContext("2d");
@@ -72,13 +82,14 @@ window.SPHERE = (() => {
     W = cv.clientWidth; cv.width = Math.round(W * dpr); cv.height = Math.round(W * dpr);
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  function poster(word){ cur = setFor(word); mine = null; mineLinks = []; }
+  function poster(word){ cur = setFor(word); mine = null; mineLinks = []; marks = []; }
 
   /* 내 답 — sphere-lookup.js가 기본형으로 읽습니다. 조각이 둘이면 찾은 것들의 자리를 평균.
      하나도 못 찾으면 지도 밖: 껍질 바깥, 방향만 글자로 정합니다 */
   function place(text){
     const parts = LOOKUP.resolve(text, w => IDX.has(w)), hits = parts.filter(x => x.lemma);
     const outside = hits.length === 0, readAs = hits.map(x => x.lemma).join(" · ");
+    mineText = text; mineLemmas = hits.map(x => x.lemma); marks = [];
     if(outside){
       const r = rng(hash(text)), d = inBall(r), n = Math.hypot(...d) || 1;
       mine = d.map(v => v / n * 1.15);
@@ -95,6 +106,48 @@ window.SPHERE = (() => {
     return { outside, readAs };
   }
 
+  /* ── 사이에 있는 말 — 정(중심)과 반(내 점)의 가운데에서 가장 가까운 실제 단어 n개 ──
+     · 흔한 말(POOL)에서만 · 내가 쓴 글자(한글/영어)와 같은 글자로만
+     · 포스터 단어·내 답과 글자가 겹치는 말(도전자·도전하다)은 뺍니다
+     · 자리는 뜻을 3차원으로 접은 것이라 거칩니다 — 「둘 다와 관련 있는 말」 정도로 읽어야 합니다 */
+  function between(n = 3, word = ""){
+    if(!cur || !mine) return [];
+    const ko = /[가-힣]/.test(mineText);
+    const bad = t => [word, mineText, ...mineLemmas].some(x => x && (t.includes(x) || x.includes(t)));
+    /* 음절이 하나라도 겹치는 말은 뺍니다 — 모델이 소리 닮은 한자어(안주→안구·금주)를 가깝게 찍는 버릇을 걸러냅니다 */
+    const syl = new Set([...(word + mineText)].filter(ch => ch >= "가" && ch <= "힣"));
+    const clash = t => [...t].some(ch => syl.has(ch));
+    const out = [];
+    /* 포스터 단어의 벡터 — 어휘 뒤에 덧붙인 30개에서. 구절(기존의 틀)은 어휘에 없으므로 여기서만 찾습니다 */
+    const pk = SPH.posters ? SPH.posters.indexOf(word) : -1;
+    const pi = pk >= 0 ? SPH.words.length + pk : IDX.get(word);
+    const mi = mineLemmas.map(l => IDX.get(l)).filter(i => i != null);
+    if(VEC && pi != null && mi.length){
+      /* 128차원 — 포스터 단어 벡터와 내 답 벡터의 합이 가운데. 후보는 그 방향과 코사인이 큰 순 */
+      const m = new Float32Array(VD);
+      for(let k = 0; k < VD; k++) m[k] = VEC[pi*VD+k] + mi.reduce((a, j) => a + VEC[j*VD+k], 0) / mi.length;
+      for(const i of POOL){
+        const w = SPH.words[i];
+        if(ko !== /[가-힣]/.test(w) || bad(w) || clash(w)) continue;
+        let d = 0; for(let k = 0; k < VD; k++) d += VEC[i*VD+k] * m[k];
+        out.push([-d, i]);
+      }
+    } else {
+      /* 3차원 자리(거침) — 중심이 원점이라 가운데는 내 점의 절반 */
+      const m = mine.map(v => v / 2);
+      for(const i of POOL){
+        const w = SPH.words[i];
+        if(ko !== /[가-힣]/.test(w) || bad(w) || clash(w)) continue;
+        const p = cur.pos(i), d = (p[0]-m[0])**2 + (p[1]-m[1])**2 + (p[2]-m[2])**2;
+        out.push([d, i]);
+      }
+    }
+    out.sort((a, b) => a[0] - b[0]);
+    const picked = out.slice(0, n).map(x => ({ w: SPH.words[x[1]], i: x[1] }));
+    marks = picked.map(x => cur.pos(x.i));                      /* 구 위에 표시할 자리 */
+    return picked.map(x => x.w);
+  }
+
   function breathe(t){
     const { base, sway, nodes } = cur;
     for(let i = 0; i < nodes.length; i++){ const w = sway[i], a = BREATH * Math.sin(t / 1000 * w.f * Math.PI * 2 + w.ph);
@@ -109,7 +162,7 @@ window.SPHERE = (() => {
   }
   function draw(t){
     raf = requestAnimationFrame(draw);
-    if(t - last < 1000 / FPS) return;
+    if(last && t - last < 1000 / FPS) return;        /* 첫 프레임은 늘 그립니다 — 페이지가 뜨자마자 열리면 t가 작아 건너뛰던 것 */
     ang += SPIN * (last ? (t - last) / 1000 : 0); last = t;
     cx.clearRect(0, 0, W, W);
     breathe(t);
@@ -126,6 +179,7 @@ window.SPHERE = (() => {
     const items = P.map(p => ({p, kind:"node"}));
     const C = proj([0,0,0]); items.push({p:C, kind:"core"});
     let M = null; if(mine){ M = proj(mine); items.push({p:M, kind:"mine"}); }
+    marks.forEach(q => items.push({p: proj(q), kind:"mark"}));
     items.sort((a, b) => b.p.z - a.p.z);
 
     /* 중심과 내 점 — 각자 이웃 셋과 */
@@ -144,6 +198,10 @@ window.SPHERE = (() => {
         const s = Math.max(1.5, 2.6 * p.k);
         cx.fillStyle = `rgba(255,255,255,${(.35 + .65 * f).toFixed(3)})`;
         cx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);   /* 픽셀처럼 네모 점 */
+      } else if(kind === "mark"){                     /* 사이에 있는 말 — 흰 점보다 큰 흰 네모, 테두리만 */
+        const s = Math.round(9 * p.k);
+        cx.strokeStyle = `rgba(255,255,255,${(.6 + .4 * f).toFixed(3)})`; cx.lineWidth = 1.5;
+        cx.strokeRect(Math.round(p.x - s/2) + .5, Math.round(p.y - s/2) + .5, s, s);
       } else if(kind === "core"){
         const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, W * .16 * pulse);
         g.addColorStop(0, `rgba(${CORE},.75)`); g.addColorStop(.35, `rgba(${CORE},.22)`); g.addColorStop(1, `rgba(${CORE},0)`);
@@ -159,5 +217,5 @@ window.SPHERE = (() => {
   }
   function start(){ fit(); last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }
   function stop(){ cancelAnimationFrame(raf); raf = 0; }
-  return { mount, poster, place, start, stop };
+  return { mount, poster, place, between, start, stop, ready: () => vecReady, hasVec: () => !!VEC };
 })();
