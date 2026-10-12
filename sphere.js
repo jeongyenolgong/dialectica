@@ -112,6 +112,7 @@ window.SPHERE = (() => {
      · 자리는 뜻을 3차원으로 접은 것이라 거칩니다 — 「둘 다와 관련 있는 말」 정도로 읽어야 합니다 */
   function between(n = 3, word = ""){
     if(!cur || !mine) return [];
+    if(!mineLemmas.length){ marks = []; return []; }           /* 지도 밖(어휘에 없는 말)이면 가운데가 없으니 후보도 없습니다 — 직접 쓰기만 */
     const ko = /[가-힣]/.test(mineText);
     const bad = t => [word, mineText, ...mineLemmas].some(x => x && (t.includes(x) || x.includes(t)));
     /* 음절이 하나라도 겹치는 말은 뺍니다 — 모델이 소리 닮은 한자어(안주→안구·금주)를 가깝게 찍는 버릇을 걸러냅니다 */
