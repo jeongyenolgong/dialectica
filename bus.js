@@ -4,7 +4,7 @@
    **장부(book)** — 지금 판의 전부. 진행자 화면만 적고, 나머지는 읽기만 한다.
        { press: 0~7, players: [ {id, name, code, picks:[5], start:[3], got:[{w,a}], ...} ], review:{list, i} }
    **말(say)** — 스쳐 지나가는 한마디. 누구나 보낸다. 장부에 남지 않는다.
-       {join:{id}} · {name:{id, name}} · {collect} · {sentence} · {vote}
+       {join:{id}} · {name:{id, name}} · {pick:{id, words}} · {collect}
    폰은 「나를 넣어 주세요」라고 말하고, **진행자 화면이 받아 적어 장부에 올린다.**
    출발 비율과 개인 코드가 한 곳에서 나와야 겹치지 않는다.
    ⭐ 2026.10.07 — 팀이 없어졌습니다. 전부 개인전입니다.
@@ -17,33 +17,28 @@
    화면 대응표(8.1)는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "261013-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261013-2";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
   const T_BOOK = `dialektika/${ROOM}/book`;
   const T_SAY  = `dialektika/${ROOM}/say`;
 
-  /* SSOT 8.1 표 — 누름 0(아직 안 누름) ~ 7(종료) */
+  /* SSOT 8.1 표 — 누름 0(아직 안 누름) ~ 4(종료)
+     ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 결과 → 종료 */
   const SCREEN = [
     "screen-01-entry.html",     /* 0 · 입장 중 */
     "screen-02-collect.html",   /* 1 · 수집 시작 */
     "screen-review.html",       /* 2 · 수집 종료 = 리뷰 타임 — 많이 고른 단어 5개를 하나씩 (2026.10.13) */
-    "screen-03-create.html",    /* 3 · 창작 시작 */
-    null,                       /* 4 · 창작 종료 — 위와 같다 */
-    "screen-04-vote.html",      /* 5 · 투표 시작 */
-    "screen-05-result.html",    /* 6 · 투표 종료 + 결과 발표 */
-    null,                       /* 7 · 종료 */
+    "screen-05-result.html",    /* 3 · 결과 발표 */
+    null,                       /* 4 · 종료 */
   ];
   const PHONE = [
     null,                          /* 0 · P1→P2→P3를 참가자가 스스로 밟는 중이라 안 건드린다 */
     "p4p5-collect.html",           /* 1 · 단어 입력 ⇄ 조건 답 */
-    "p3-wait.html",                /* 2 · 대기② — 리뷰 타임은 스크린만 */
-    "p6-create.html",              /* 3 · P6 */
-    "p3-wait.html",                /* 4 · 대기③ */
-    "p8p9-vote-result.html",       /* 5 · P8 */
-    "p8p9-vote-result.html?v=9",   /* 6 · P9 */
-    null,                          /* 7 · 종료 */
+    "p3-wait.html",                /* 2 · 대기 — 리뷰 타임은 스크린만 */
+    "p3-wait.html",                /* 3 · 대기 — 결과도 스크린만 */
+    null,                          /* 4 · 종료 */
   ];
 
   const here = location.pathname.split("/").pop() || "index.html";
@@ -77,8 +72,7 @@
     /* ⭐ 새 판이 열리면(누름 0) 뒷단계에 있던 폰은 처음 화면으로 돌아옵니다.
        판 번호를 못 봤어도 장부만 보고 판단하므로 놓치지 않습니다.
        ⛔대기 화면(P3)은 빼야 합니다 — 입장 중에 거기서 기다리는 게 정상입니다 */
-    if (n === 0 && role === "phone" &&
-        ["p4p5-collect.html", "p6-create.html", "p8p9-vote-result.html"].includes(here)) {
+    if (n === 0 && role === "phone" && here === "p4p5-collect.html") {
       target = "p1-identity.html";
     }
     if (!target) return;                          /* 그대로 둔다 */
@@ -115,10 +109,6 @@
     /* ⭐ 진행자가 「종료」를 누르면 판 번호가 오릅니다 — 폰은 처음 화면으로 */
     if (typeof next.gen === "number") {
       if (lastGen !== null && next.gen !== lastGen && role === "phone") {
-        try {
-          localStorage.removeItem("dlk.pairs." + window.Bus.me());
-          localStorage.removeItem("dlk.sents." + window.Bus.me());
-        } catch (e) {}
         lastGen = next.gen;
         return window.Bus.go("p1-identity.html");
       }
@@ -182,8 +172,7 @@
     /* 장부에서 나를 찾는다 */
     mine(b) { const id = this.me(); return ((b || book).players || []).find(p => p.id === id); },
 
-    /* ⭐ 6.12 순위 알림 — 수집 · 창작 화면에 같은 것이 걸립니다.
-       basis: 수집이면 "cnt"(=모은 단어 수), 창작이면 "sent"(=만든 문장 수).
+    /* ⭐ 6.12 순위 알림 — 수집 화면에 걸립니다. basis: "cnt"(=모은 단어 수).
        ⭐ 1분마다 그때의 순위를 재서 발표합니다 — 변동은 알리지 않습니다(2026.08.14).
        ⭐ 1·2·3위에게만 갑니다. 30명 전원에게 보내면 폰이 쉬지 않고 울립니다.
        ⛔ 팀 알림은 없앴습니다 — 2026.10.07 팀전 폐지                         */

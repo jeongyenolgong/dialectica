@@ -85,11 +85,6 @@
   .found div{display:flex; gap:14px; justify-content:center}
   .found .code{color:var(--dim); font-variant-numeric:tabular-nums; letter-spacing:.14em}
 
-  .knob{display:flex; gap:8px; align-items:center; justify-content:center; padding-bottom:14px;
-        color:var(--dim); letter-spacing:.04em}
-  .knob button{background:transparent; color:var(--dim); border:1px solid var(--line); padding:4px 16px}
-  .knob button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
-  .knob[hidden]{display:none}
 
   .bottom{flex:0 0 auto; border-top:1px solid var(--line); padding:14px 0; text-align:center}
   #next{background:var(--fg); color:var(--bg); border:0; padding:9px 46px; letter-spacing:.1em; font-weight:600}
@@ -111,11 +106,11 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261013-1"></script>
+<script src="bus.js?b=261013-2"></script>
 <script src="data.js?b=261013-1"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
-<script src="sphere.js?b=261013-1"></script>
+<script src="sphere.js?b=261013-2"></script>
 </head>
 <body>
 
@@ -139,10 +134,6 @@
 </main>
 
 <div class="bottom">
-  <div class="knob" id="knob" hidden>
-    <span>투표 길이</span>
-    <button data-k="0.6">짧게</button><button data-k="1" aria-pressed="true">보통</button><button data-k="1.6">길게</button>
-  </div>
   <button id="next">다음</button>
 </div>
 
@@ -169,8 +160,7 @@
       · 입장 — 개인 코드(6자리 난수)를 여기서 정합니다. 출발 비율은 폰이 고른 5개를 받아 셉니다(DLK.startFrom, 2026.10.13)
       · 리뷰 — 수집 종료 = 리뷰 타임. 많이 고른 단어 5개와 단어마다 가장 먼 답 둘을 여기서 뽑아 장부에 올립니다(buildReview)
       · 수집 — 단어 하나 = 수집 점수 1(모은 개수). 게이지는 DLK.gauges가 셉니다
-      · 창작 — 문장 하나 = OU +10 (DLK.ouOf)
-      · 투표 — 득표만 셉니다. 게이지는 안 오릅니다
+      ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 결과로 바로 갑니다
    ⭐ 「모두 100」은 방 평균 막대로 봅니다 — 진행자는 그걸 보고 「다음」을 누릅니다.
    ───────────────────────────────────────────────────────────────────────── */
 const SUR = "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구";
@@ -178,11 +168,10 @@ const GIV = ["서연","지훈","수민","유진","하늘","도윤","서아","재
              "민준","나윤","지호","채원","시우","현우","아름","은성","도현","수빈","가온","루하"];
 const nameAt = k => SUR[k % SUR.length] + GIV[(k*7) % GIV.length];
 
-/* people: {id, name, named, code, picks:[5], start, got:[{w,a,n}], sent, at, voted, mock} */
+/* people: {id, name, named, code, picks:[5], start, got:[{w,a,n}], at, mock} */
 let people = [];
 let stage = "entry";
 let press = 0;
-let voteLen = 1, voteStarted = false;
 let timers = [];
 const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
 const later = (fn, ms) => timers.push(setTimeout(fn, ms));
@@ -190,46 +179,34 @@ const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타임의 순서 */
 let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
-let sents = {};        /* 단어별 문장에 쓰인 수 — 스크린 9.3 단어 순위 */
-let sentences = [];    /* {by, name, a, b, text} — 투표에 뜨려면 여기 있어야 합니다 */
-let wins = [], duels = {}, ballots = {};
 let seq = 0, gen = 0;
-const heard = {};      /* 이미 받아 적은 말 — 같은 말이 두 번 와도 한 번만 셉니다 */
 const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 다시 말하기를 그칩니다 */
 
 const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
-const ouOfP = p => DLK.ouOf(p.sent);
 
-/* ── 「다음」 여섯 번과 「종료」 한 번 (8.1) ── */
+/* ── 「다음」 세 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제) ── */
 const PRESSES = [
   {at:"entry",   l1:"수집을 시작합니다", l2:"참가자 전원이 단어 수집 화면으로 넘어갑니다.",
                  go:"시작", act(){ stage = "collect"; runMockCollect(); }},
   {at:"collect", l1:"수집을 종료하고 리뷰를 시작합니다",
                  l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다. 스크린에 많이 고른 단어 5개가 하나씩 뜹니다.",
                  go:"종료", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
-  {at:"review",  l1:"창작을 시작합니다", l2:"참가자 전원이 문장 창작 화면으로 넘어갑니다.",
-                 go:"시작", act(){ stage = "create"; runMockCreate(); }},
-  {at:"create",  l1:"창작을 종료합니다", l2:"쓰는 중인 문장은 제출되지 않습니다.",
-                 go:"종료", warn:true, act(){ clearAll(); stage = "vote"; }},
-  {at:"vote",    l1:"투표를 시작합니다", l2:"참가자 전원이 투표 화면으로 넘어갑니다.",
-                 go:"시작", act(){ runVote(); }},
-  {at:"vote",    l1:"투표를 종료하고 결과를 발표합니다",
-                 l2:"아직 투표 중인 참가자가 있으면 그대로 끊깁니다. 스크린과 참가자 화면에 결과가 함께 뜹니다.",
+  {at:"review",  l1:"리뷰를 마치고 결과를 발표합니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
                  go:"발표", warn:true, act(){ clearAll(); stage = "result"; }},
   /* 「종료」는 판을 닫고 새 판을 엽니다 — 플레이 테스트를 이어서 하기 위한 것입니다 */
   {at:"result",  l1:"워크숍을 종료하고 새 판을 엽니다",
                  l2:"이 판의 결과가 지워지고 참가자 폰이 전부 처음 화면으로 돌아갑니다.",
                  go:"종료", warn:true, act(){ newGame(); }},
 ];
-const ORDER = ["entry","collect","review","create","vote","result"];
+const ORDER = ["entry","collect","review","result"];
 
 /* 방 평균 — 이름을 낸 사람만 셉니다 */
 function avg(){
   const P = people.filter(p => p.named && p.start);
   if(!P.length) return null;
-  const s = [0,0,0], n = P.length; let ou = 0;
-  P.forEach(p => { const g = gOf(p); g.forEach((v,i) => s[i] += v); ou += ouOfP(p); });
-  return {g:s.map(v => Math.round(v/n)), ou:Math.round(ou/n)};
+  const s = [0,0,0], n = P.length;
+  P.forEach(p => { const g = gOf(p); g.forEach((v,i) => s[i] += v); });
+  return {g:s.map(v => Math.round(v/n))};
 }
 
 /* 사람 옆 숫자 — 그 단계에서 세는 것 */
@@ -237,23 +214,19 @@ function personNum(p){
   if(stage === "entry")   return p.start ? `<span>${p.start.join(" · ")}</span>` : `<span>고르는 중</span>`;
   if(stage === "collect" || stage === "review"){ const g = gOf(p);
     return `<b>${p.got.length}</b>개 &nbsp; ${g.join(" · ")}`; }
-  if(stage === "create")  return `<b>${p.sent}</b>편 &nbsp; OU ${ouOfP(p)}`;
-  if(stage === "vote")    return p.voted ? "<b>완료</b>" : "";
   return "";
 }
-const isDone = p => stage === "collect" ? gOf(p).every(v => v >= DLK.FULL)
-                  : stage === "create" ? ouOfP(p) >= DLK.FULL : false;
+const isDone = p => stage === "collect" ? gOf(p).every(v => v >= DLK.FULL) : false;
 
 const board = document.getElementById("board");
 const hero  = document.getElementById("hero");
 
 function drawCrumb(){
-  const names = ["입장","수집","리뷰","창작","투표","결과"];
+  const names = ["입장","수집","리뷰","결과"];
   const now = ORDER.indexOf(stage);
   document.getElementById("crumb").innerHTML = names
     .map((n,i) => `<b class="${i === now ? "on" : ""}">${n}</b>`).join("<span>›</span>");
 }
-const voteDone = () => people.filter(p => p.voted).length;
 function drawHero(){
   const a = avg();
   const C = DLK.CHARS;
@@ -264,9 +237,6 @@ function drawHero(){
   else if(stage === "review") hero.innerHTML = review && review.list.length ?
       (review.i < 0 ? `<span><span class="k">리뷰</span><span class="n">5</span><span class="k">함께 보기</span></span>`
                     : `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>`) : "";
-  else if(stage === "create") hero.innerHTML = a ?
-      `<span><span class="k">OU</span><span class="n">${a.ou}</span></span><span class="k">방 평균</span>` : "";
-  else if(stage === "vote") hero.innerHTML = `<span>투표 완료<span class="n">${voteDone()} / ${people.filter(p=>p.named).length}</span></span>`;
   else hero.innerHTML = "";
 }
 
@@ -280,7 +250,6 @@ function draw(){
     const ul = document.getElementById("ul");
     people.filter(p => p.named).forEach(p => ul.appendChild(row(p)));
   }
-  document.getElementById("knob").hidden = !(stage === "vote" && !voteStarted);
   document.getElementById("next").textContent = stage === "result" ? "종료" : "다음";
   drawCrumb(); drawHero(); applySearch(); gauge();
 }
@@ -364,14 +333,13 @@ function sync(){
   Bus.publish({
     players: people.map(p => ({
       id:p.id, name:p.named ? p.name : "", code:p.code, picks:p.picks, start:p.start,
-      got:p.got, cnt:p.got.length, sent:p.sent, g:gOf(p), ou:ouOfP(p),
-      at:p.at || 0, voted:!!p.voted, votes:Object.keys(ballots[p.id] || {}).length
+      got:p.got, cnt:p.got.length, g:gOf(p), at:p.at || 0
     })),
-    picks, review, words, sents, sentences, duels, wins, gen, ack
+    picks, review, words, gen, ack
   });
 }
 function remember(id, kind, n){
-  const a = ack[id] || (ack[id] = {p:[], s:[], v:[]});
+  const a = ack[id] || (ack[id] = {p:[]});
   if(!a[kind].includes(n)) a[kind].push(n);
 }
 /* 개인 코드 — 6자리 난수. 겹치지 않게 */
@@ -384,7 +352,7 @@ function newCode(){
 function joinReal(id, mock){
   if(people.some(p => p.id === id)) return null;   /* 새로고침해도 두 번 들어오지 않는다 */
   const p = {id, name:"", named:false, code:newCode(), picks:null, start:null,
-             got:[], sent:0, at:0, voted:false, mock:!!mock};
+             got:[], at:0, mock:!!mock};
   people.push(p);
   sync(); drawHero(); gauge();
   return p;
@@ -425,77 +393,12 @@ function collectReal(id, nth, w, a){
   k.n++; k.at = seq;
   bump(p); sync();
 }
-/* 폰이 문장 하나를 낼 때마다 — 같은 단어 쌍은 한 번만 */
-function sentReal(id, nth, a, b, text){
-  const p = people.find(q => q.id === id);
-  if(!p) return;
-  remember(id, "s", nth);
-  const key = `sent:${id}:${DLK.pairKey(a, b)}`;
-  if(heard[key]){ sync(); return; }
-  heard[key] = true;
-  p.sent++; p.at = ++seq;
-  [a, b].forEach(w => { const k = sents[w] || (sents[w] = {n:0, at:0}); k.n++; k.at = seq; });
-  sentences.push({by:id, name:p.name, a, b, text:String(text).slice(0, 300)});
-  bump(p); sync();
-}
-
-/* ══ 투표 — 짝은 여기서 다 짜서 장부에 올립니다 (7.4) ════════════════ */
-function buildDuels(){
-  wins = sentences.map(() => 0);
-  duels = {}; ballots = {};
-  const shows = sentences.map(() => 0);
-  const ppl = people.filter(p => p.named);
-  const expose = Math.max(2, Math.round(6 * voteLen));   /* 문장 한 편이 뜨는 횟수 */
-  ppl.forEach(p => duels[p.id] = []);
-  if(sentences.length < 2 || ppl.length < 2){ sync(); return; }
-  const per = Math.max(1, Math.ceil(sentences.length * expose / (2 * ppl.length)));
-  for(let r = 0; r < per; r++){
-    ppl.forEach(p => {
-      /* 내 문장은 뺍니다. 팀이 없어져 「우리 팀 문장 빼기」는 사라졌습니다 */
-      const cand = sentences.map((_,i) => i).filter(i => sentences[i].by !== p.id)
-        .sort((a,b) => shows[a] - shows[b] || Math.random() - .5);
-      const a = cand[0];
-      if(a === undefined) return;
-      const b = cand.find(i => i !== a && sentences[i].by !== sentences[a].by);
-      if(b === undefined) return;
-      shows[a]++; shows[b]++;
-      duels[p.id].push(Math.random() < .5 ? [a, b] : [b, a]);
-    });
-  }
-  noted = `대결 ${Object.values(duels).reduce((n,d) => n+d.length, 0)}판 · 1인당 ${per}판`;
-  sync();
-}
-function voteReal(id, k, win){
-  const p = people.find(q => q.id === id);
-  if(!p) return;
-  const box = ballots[id] || (ballots[id] = {});
-  remember(id, "v", k);
-  if(box[k] !== undefined){ sync(); return; }
-  box[k] = win;
-  wins[win] = (wins[win] || 0) + 1;
-  p.at = ++seq;
-  const need = (duels[id] || []).length;
-  p.voted = need > 0 && Object.keys(box).length >= need;
-  bump(p); sync();
-}
-function runVote(){
-  voteStarted = true;
-  buildDuels();
-  /* 흉내 인원만 저절로 고릅니다 — 진짜 사람은 폰에서 고릅니다 */
-  people.filter(p => p.mock).forEach(p => {
-    (duels[p.id] || []).forEach((d, k) =>
-      later(() => voteReal(p.id, k, d[Math.random() < .5 ? 0 : 1]), (1500 + k*1200 + Math.random()*2500) * voteLen));
-  });
-}
-
 Bus.onSay(msg => {
   if(!msg) return;
   if(msg.join) joinReal(msg.join.id);
   if(msg.name) nameReal(msg.name.id, msg.name.name);
   if(msg.pick) pickReal(msg.pick.id, msg.pick.words);
   if(msg.collect) collectReal(msg.collect.id, msg.collect.nth, msg.collect.w, msg.collect.a);
-  if(msg.sentence) sentReal(msg.sentence.id, msg.sentence.nth, msg.sentence.a, msg.sentence.b, msg.sentence.text);
-  if(msg.vote) voteReal(msg.vote.id, msg.vote.k, msg.vote.win);
 });
 
 /* ── 확인 팝업 ── */
@@ -538,28 +441,23 @@ function applySearch(){
   if(found) found.innerHTML = !q ? "" : people.filter(p => p.named && p.name.includes(q)).slice(0,8)
     .map(p => `<div><span>${DLK.esc(p.name)}</span><span class="code">${p.code}</span></div>`).join("");
 }
-document.querySelectorAll("#knob button").forEach(b => b.onclick = () => {
-  voteLen = +b.dataset.k;
-  document.querySelectorAll("#knob button").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
-});
 
 /* ── 새 판 — 장부를 비우고 판 번호를 올립니다. 폰은 그 번호를 보고 처음으로 돌아갑니다 ── */
 let noted = "";
 function newGame(){
   clearAll();
-  people = []; picks = {}; review = null; words = {}; sents = {}; sentences = []; wins = []; duels = {}; ballots = {};
+  people = []; picks = {}; review = null; words = {};
   Object.keys(ack).forEach(k => delete ack[k]);
-  Object.keys(heard).forEach(k => delete heard[k]);
-  seq = 0; stage = "entry"; press = 0; voteStarted = false;
+  seq = 0; stage = "entry"; press = 0;
   noted = "새 판을 열었습니다";
   gen++;
-  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
+  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, ack:{}});
   draw();
 }
 
 /* ══ 연습용 흉내 인원 ═══════════════════════════════════════════════════
    혼자서 스크린과 진행자 화면을 돌려 보려고 둔 것입니다. 진짜 폰과 같은 길(joinReal ·
-   collectReal · sentReal · voteReal)로 들어가므로 셈도 장부도 진짜와 똑같습니다.
+   nameReal · pickReal · collectReal)로 들어가므로 셈도 장부도 진짜와 똑같습니다.
    ⛔ 진짜 판에서는 누르지 마세요 — 장부에 가짜 사람이 섞입니다.                    */
 /* 조건이 Opposite 하나로 통일된 뒤(2026.10.07 오후) 흉내 답도 하나의 목록 — 지도 밖 답(ㅋㅋ)도 섞어 둡니다 */
 const ANS = {"Opposite":["외면","안주","연결","사건","새로운 시도","기계 중심","정체","두려움","무관심","고정","파괴",
@@ -587,18 +485,6 @@ function runMockCollect(){
                                   1500 + k*(1500 + Math.random()*2500)));
   });
 }
-function runMockCreate(){
-  people.filter(p => p.mock).forEach(p => {
-    const W = p.got.map(o => o.w);
-    const n = Math.min(10, Math.floor(W.length * (W.length-1) / 2));
-    let made = 0;
-    for(let i = 0; i < W.length && made < n; i++)
-      for(let j = i+1; j < W.length && made < n; j++){
-        const a = W[i], b = W[j], m = ++made;
-        later(() => sentReal(p.id, m, a, b, `${a}과 ${b}은 서로를 비추며 함께 자란다`), 1200 + m*(1800 + Math.random()*2400));
-      }
-  });
-}
 const btns = document.getElementById("btns");
 [3, 12, 30].forEach(n => {
   const b = document.createElement("button");
@@ -607,10 +493,10 @@ const btns = document.getElementById("btns");
   btns.appendChild(b);
 });
 function gauge(){
-  const label = {entry:"입장", collect:"수집", review:"리뷰", create:"창작", vote:"투표", result:"결과"}[stage];
+  const label = {entry:"입장", collect:"수집", review:"리뷰", result:"결과"}[stage];
   document.getElementById("gauge").textContent =
     `판 ${Bus.build}/${Bus.mode()} · ${label} · 접속 ${people.length}명 · 이름 ${people.filter(p=>p.named).length}명`
-    + ` · 문장 ${sentences.length}편` + (noted ? ` · ${noted}` : "");
+    + (noted ? ` · ${noted}` : "");
 }
 
 /* ⛔ 진행자가 실수로 새로고침해도 판이 날아가면 안 됩니다.
@@ -622,21 +508,18 @@ Bus.onState(b => {
   if(b.players && b.players.length){
     people = b.players.map(p => ({
       id:p.id, name:p.name, named:!!p.name, code:p.code, picks:p.picks || null, start:p.start || null,
-      got:p.got || [], sent:p.sent || 0, at:p.at || 0, voted:!!p.voted, mock:String(p.id).startsWith("mock")
+      got:p.got || [], at:p.at || 0, mock:String(p.id).startsWith("mock")
     }));
     picks = b.picks || {}; review = b.review || null;
-    words = b.words || {}; sents = b.sents || {}; sentences = b.sentences || [];
-    wins = b.wins || []; duels = b.duels || {}; gen = b.gen || 0;
+    words = b.words || {}; gen = b.gen || 0;
     Object.assign(ack, b.ack || {});
-    sentences.forEach(x => heard[`sent:${x.by}:${DLK.pairKey(x.a, x.b)}`] = true);
     seq = Math.max(0, ...people.map(p => p.at || 0));
     press = b.press || 0;
     stage = press < PRESSES.length ? PRESSES[press].at : "result";
-    voteStarted = press >= 5;
     noted = `장부를 이어받음 · ${people.length}명`;
     draw();
   }else{
-    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
+    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, ack:{}});
   }
 });
 draw();

@@ -7,63 +7,37 @@
 <link rel="stylesheet" href="font.css?b=261007-1">
 <link rel="stylesheet" href="screen.css?b=261007-1">
 <style>
-  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,2.2fr) minmax(0,1fr); gap:4vw;
-       padding:4vh 0 2vh; min-height:0; align-items:center}
-  ol.s{gap:2.2vh}
-  ol.s li{align-items:flex-start; gap:1vw}
-  ol.s .rank{line-height:1.3; font-size:var(--sent)}
-  .sent{font-size:var(--sent); line-height:1.35; word-break:keep-all}
-  .sent .je{background:var(--name); color:var(--bg); padding:0 .2em}
-  .sent .ban{text-decoration:underline; text-underline-offset:.15em; text-decoration-thickness:2px}
-  .by{font-size:calc(var(--sent) * .62); color:var(--line); margin-top:.5em}
+  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr); padding:4vh 0 2vh; min-height:0; align-items:center}
   .right{display:flex; flex-direction:column; align-items:center}
-  .right .bars{max-width:none}
+  .right .bars{max-width:46vw}
 </style>
-<script src="bus.js?b=261013-1"></script>
+<script src="bus.js?b=261013-2"></script>
 <script src="data.js?b=261013-1"></script>
-<script src="screen.js?b=261007-1"></script>
+<script src="screen.js?b=261013-2"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
-     스크린 9.5 결과 (2026.10.07)
-     ① 표를 가장 많이 받은 문장 **다섯**과 쓴 사람 — 함께 리뷰합니다(사용자 "가장 많은 득표를 한 문장 5개를 골라서 함께 리뷰")
-     ② 방 평균 네 막대 — 「모두가 100이 된 상태를 확인하며 끝나는」 장면
+     스크린 9.5 결과 (2026.10.07 · 2026.10.13 창작·투표 삭제)
+     방 평균 세 막대 — 「모두가 100이 된 상태를 확인하며 끝나는」 장면
+     ⛔ 득표 문장 다섯 · OU 막대는 투표·창작과 함께 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제").
      ⛔ 우승 팀 · 최다 득표 개인 · 최종 누적 순위는 없앴습니다(2026.10.07).
-     ⭐ 등장 연출은 없습니다 — 투표가 끝나면 즉시 결과판(9.5).
+     ⭐ 등장 연출은 없습니다 — 리뷰가 끝나면 즉시 결과판.
+     🔴 결과 화면에 무엇을 더 보일지는 미정 — 사용자가 리뷰 내용을 세밀하게 정한 뒤 따라갑니다.
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
 <h1 class="stage"><span class="ko">결과 발표</span><span class="la">FINAL RESULT</span></h1>
 
 <main>
-  <section><h2 style="text-align:left">가장 많은 표를 받은 문장</h2><ol class="s" id="s"></ol></section>
   <section class="right"><h2>방 평균</h2><div class="bars" id="bars"></div></section>
 </main>
 
 <script>
 SC.sizes();
-const setBars = SC.bars(document.getElementById("bars"), [...DLK.CHARS, DLK.OU]);
+const setBars = SC.bars(document.getElementById("bars"), DLK.CHARS);
 let book = Bus.state();
-function markup(x){
-  let h = DLK.esc(x.text);
-  if(x.a) h = h.replace(DLK.esc(x.a), `<span class="je">${DLK.esc(x.a)}</span>`);      /* 포스터 단어 — 흰 블록 */
-  if(x.b) h = h.replace(DLK.esc(x.b), `<span class="ban">${DLK.esc(x.b)}</span>`);     /* 내가 쓴 말 — 밑줄 */
-  return h;
-}
 function render(){
-  const W = book.wins || [];
-  const top = (book.sentences || []).map((x, i) => ({x, n:W[i] || 0, i}))
-    .sort((a, c) => c.n - a.n || a.i - c.i).slice(0, 5);
-  /* 다섯 편이 화면에 들어가도록 글자 크기를 한 단계씩 줄입니다(말줄임표 없음) */
-  const ol = document.getElementById("s");
-  ol.innerHTML = top.map((o, k) => `<li><span class="rank">${k+1}</span><div><div class="sent">${markup(o.x)}</div>`
-    + `<div class="by">${DLK.esc(o.x.name)}</div></div></li>`).join("");
-  const sec = ol.parentElement, avail = document.querySelector("main").clientHeight * 0.92;
-  for(const px of [48, 36, 30, 24, 18]){
-    document.documentElement.style.setProperty("--sent", px + "px");
-    if(sec.scrollHeight <= avail) break;
-  }
   const a = SC.roomAvg(book);
-  setBars(a ? [...a.g, a.ou] : null);
+  setBars(a ? a.g : null);
 }
 Bus.onState(b => { book = b; render(); });
 addEventListener("resize", () => { SC.sizes(); render(); });

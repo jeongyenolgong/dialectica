@@ -15,13 +15,13 @@
   .caret.off{background:transparent}
   #dots{margin-top:60px; font-size:20px; color:var(--line); letter-spacing:.1em; min-height:1.2em}
 </style>
-<script src="bus.js?b=261013-1"></script>
+<script src="bus.js?b=261013-2"></script>
 <script src="data.js?b=261013-1"></script>
-<script src="phone.js?b=261007-1"></script>
+<script src="phone.js?b=261013-2"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
-     P3 대기 — 입장 후 · 수집 후 · 창작 후 세 번 씁니다. 조작이 하나도 없는 화면.
+     P3 대기 — 입장 후 · 리뷰 타임 · 결과 발표 때 씁니다. 조작이 하나도 없는 화면.
      빠져나오는 길은 진행자 신호뿐입니다. 내 게이지는 헤더 아래에 그대로 보입니다.
      ───────────────────────────────────────────────────────────────────── -->
 <div class="phone">
@@ -48,14 +48,9 @@ let n = 0;
 setInterval(() => { n = (n+1) % 4; $("#dots").textContent = "대기 중" + "·".repeat(n); }, 400);
 paint();
 
-/* 창작이 끝난 뒤의 대기에는 OU 게이지까지 보입니다 */
-let gs = null, withOU = null;
-Bus.onState(b => {
-  const st = PH.state(b);
-  const ou = (b.press || 0) >= 3;
-  if(withOU !== ou){ withOU = ou; gs = PH.strip($("#strip"), ou); }
-  gs.set(st.g, st.ou);
-});
+/* 내 게이지 셋 — 창작·투표가 없어져 OU 게이지는 안 보입니다(2026.10.13) */
+const gs = PH.strip($("#strip"), false);
+Bus.onState(b => gs.set(PH.state(b).g, null));
 </script>
 </body>
 </html>
