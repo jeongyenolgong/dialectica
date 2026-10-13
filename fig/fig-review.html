@@ -12,14 +12,18 @@ try{ localStorage.setItem("dlk.book", JSON.stringify({press:2, players:[]})); }c
   <iframe id="f" src="../screen-review.html?room=fig"></iframe>
 <script>
   const f = document.getElementById("f");
-  f.addEventListener("load", () => setTimeout(() => {
+  /* 장부 찾기(노트북 2.5초 → 중계 → 혼자)가 끝나면 빈 장부로 다시 그려져 「준비하는 중」으로 돌아갑니다 — 몇 번 더 넣습니다 */
+  f.addEventListener("load", () => [600, 3500, 7000].forEach(ms => setTimeout(() => {
     const w = f.contentWindow;
     const word = "경계";
-    const raw = [["김서연","연결"],["이지훈","안주"],["박수민","중심"],["최유진","개방"],["정하늘","바나나"],["강도윤","ㅋㅋ"],["조서아","자유"],["윤재현","무한"],["장지우","소통"]];
+    /* 30명 — 최대 인원일 때 오른쪽 목록이 들어가는지 봅니다(2026.10.13) */
+    const raw = [["김서연","연결"],["이지훈","안주"],["박수민","중심"],["최유진","개방"],["정하늘","바나나"],["강도윤","ㅋㅋ"],["조서아","자유"],["윤재현","무한"],["장지우","소통"],
+      ["임소율","확장"],["한준혁","포용"],["오예린","융합"],["서민준","안쪽"],["신나윤","경계 없는 세계"],["권지호","울타리"],["황채원","흐름"],["안시우","벽"],["송현우","통합"],
+      ["전아름","넘나듦"],["홍은성","내부"],["유도현","공유"],["고수빈","개방성"],["문가온","섞임"],["양루하","평원"],["손서연","교류"],["배지훈","열림"],["백수민","다리"],["허유진","무경계"],["남하늘","자유로움"],["심도윤","열린 문"]];
     const ans = raw.map(([name, a]) => ({name, a, d: w.SPHERE.measure(word, a)}));
     const far = ans.map((x,k) => [k, x.d]).filter(x => x[1] != null).sort((x,y) => y[1]-x[1]).slice(0,2).map(x => x[0]);
     w.render({review:{list:[{w:word, n:11, ans, far},{w:"도전",n:9,ans:[],far:[]},{w:"일상",n:8,ans:[],far:[]},{w:"본질",n:7,ans:[],far:[]},{w:"상상",n:6,ans:[],far:[]}], i:0}});
     console.log(JSON.stringify(ans.map(x => [x.a, x.d && x.d.toFixed(2)])), far);
-  }, 600));
+  }, ms)));
 </script>
 </body></html>

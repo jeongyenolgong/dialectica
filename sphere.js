@@ -8,7 +8,7 @@
    판정하지 않습니다 — 숫자도, 맞음·틀림 색도 없습니다.
 
    쓰는 법:  SPHERE.mount(canvas) → SPHERE.poster(단어) → SPHERE.place(내 답) → SPHERE.start() … SPHERE.stop()
-   스크린 리뷰(2026.10.13): SPHERE.marks([{text, hi, label}]) — 답 여럿을 한 구에. hi인 것만 민트 + 이름표, 나머지는 흰 점.
+   스크린 리뷰(2026.10.13): SPHERE.marks([{text, hi, label, sub}]) — 답 여럿을 한 구에. hi인 것만 민트 + 이름표(label 위, sub 아래 작게), 나머지는 흰 점.
              SPHERE.measure(단어, 답) — 포스터 단어에서 그 답까지의 거리(0~1). 지도 밖이면 null.
    거리표 sphere-table.js(SPH)와 읽기 규칙 sphere-lookup.js(LOOKUP)가 먼저 실려 있어야 합니다.
    ───────────────────────────────────────────────────────────────────────── */
@@ -101,7 +101,7 @@ window.SPHERE = (() => {
   /* 답 여럿 — [{text, hi, label}] */
   function marksOf(list){
     marks = (list || []).map(m => { const r = locate(cur, m.text);
-      return { pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: !!m.hi, label: m.label || "", outside: r.outside }; });
+      return { pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: !!m.hi, label: m.label || "", sub: m.sub || "", outside: r.outside }; });
   }
 
   /* 내 답 하나 — 수집 화면. sphere-lookup.js가 기본형으로 읽습니다 */
@@ -181,11 +181,18 @@ window.SPHERE = (() => {
         cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, 16 * p.k, 0, Math.PI*2); cx.fill();
         cx.fillStyle = `rgb(${MINE})`; const s = Math.round(7 * p.k); cx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);
         if(m && m.label){
-          cx.font = `${labelPx}px Galmuri11, monospace`; cx.textBaseline = "middle";
           const left = p.x > W * .62;                 /* 오른쪽 끝이면 왼쪽에 적습니다 */
-          cx.textAlign = left ? "right" : "left";
+          const x = p.x + (left ? -1 : 1) * (s + 8);
+          cx.textAlign = left ? "right" : "left"; cx.textBaseline = "middle";
           cx.fillStyle = `rgb(${MINE})`;
-          cx.fillText(m.label, p.x + (left ? -1 : 1) * (s + 8), p.y);
+          if(m.sub){
+            /* 두 줄 — 위에 적은 말(크게), 아래에 이름(작게). 리뷰 스크린(2026.10.13 사용자 "구에서는 가장 거리가 먼 두 사람의 이름과 그 단어") */
+            const subPx = Math.max(12, labelPx - 12);
+            cx.font = `${labelPx}px Galmuri11, monospace`; cx.fillText(m.label, x, p.y - subPx * .6);
+            cx.font = `${subPx}px Galmuri11, monospace`; cx.fillStyle = `rgba(${MINE},.8)`; cx.fillText(m.sub, x, p.y + labelPx * .6);
+          }else{
+            cx.font = `${labelPx}px Galmuri11, monospace`; cx.fillText(m.label, x, p.y);
+          }
         }
       }
     });
