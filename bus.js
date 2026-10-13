@@ -110,13 +110,16 @@
         앞사람의 단어 다섯이 다음 사람 것으로 올라갑니다(2026.10.14 사용자 보고). */
   const K_ROUND = "dlk.round";
   function roundOf(b) { return b.gid || (typeof b.gen === "number" ? "g" + b.gen : null); }
+  const OLD_NOTE = /^dlk\.(picks|pairs|sents)\./;
   function wipePhone() {
     try {
       Object.keys(localStorage)
-        .filter(k => k === "dlk.me" || /^dlk\.(picks|pairs|sents)\./.test(k))
+        .filter(k => k === "dlk.me" || OLD_NOTE.test(k))
         .forEach(k => localStorage.removeItem(k));
     } catch (e) {}
   }
+  /* 지난 판의 쪽지가 남아 있나 — 표식을 적기 전(2026.10.14 이전)에 플레이한 폰을 가립니다 */
+  function hasOldNotes() { try { return Object.keys(localStorage).some(k => OLD_NOTE.test(k)); } catch (e) { return false; } }
   function gotBook(next) {
     if (!next || typeof next !== "object") return;
     if (role === "phone") {
@@ -126,7 +129,8 @@
         try { seen = localStorage.getItem(K_ROUND); } catch (e) {}
         if (seen !== r) {
           try { localStorage.setItem(K_ROUND, r); } catch (e) {}
-          if (seen) { wipePhone(); return window.Bus.go("p1-identity.html"); }
+          /* 표식이 없고 쪽지도 없으면 새 폰 — 그냥 둡니다(쪽지를 못 쓰는 폰이 되풀이해 돌아오지 않게) */
+          if (seen || hasOldNotes()) { wipePhone(); return window.Bus.go("p1-identity.html"); }
         }
       }
     }
