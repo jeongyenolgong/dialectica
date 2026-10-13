@@ -17,8 +17,10 @@
   .chip.on{background:var(--name); color:var(--bg)}
   .chips.lock .chip:not(.on){color:var(--line); border-color:var(--line)}
   /* 고른 것들 — 아래에 작게 쌓입니다 */
-  #done{margin-top:28px; min-height:1.5em; font-size:15px; color:var(--line); letter-spacing:.03em;
-        text-align:center; word-break:keep-all; line-height:1.6}
+  /* 고른 것들 — 줄은 단어 사이에서만 바뀝니다. 단어 안(「기존의 틀」처럼 띄어쓰기가 든 단어)에서는 안 바뀝니다 (2026.10.13 사용자) */
+  #done{margin-top:28px; min-height:1.5em; width:100%; max-width:340px; font-size:15px; color:var(--line);
+        letter-spacing:.02em; text-align:center; line-height:1.6}
+  #done span{white-space:nowrap}
 </style>
 <script src="bus.js?b=261013-1"></script>
 <script src="data.js?b=261013-1"></script>
@@ -29,7 +31,9 @@
      P1b 고르기 — 이름 다음, 내 상태 전 (2026.10.13 사용자)
      「30개 중 5개를 고르는 화면은 한 화면에 6개의 단어씩 보여주고 하나를 선택하라고 할거야.」
      · 다섯 판 × 여섯 단어(캐릭터마다 둘씩) — 판은 DLK.pickRounds(내 이름표)가 짭니다. 다시 열어도 같은 판.
-     · 하나를 누르면 바로 다음 판. 되돌리기 없음(조작 최소).
+     · 하나를 누르면 칩이 반전되고 다음 판. 번쩍임 없음. 되돌리기 없음(조작 최소).
+     · 고른 단어는 아래에 쌓입니다 — 줄은 단어 사이에서만 바뀌고 단어 안에서는 안 바뀝니다.
+     · 다 고르면 곧장 내 상태(P2)로. 「잠시만 기다려 주세요」는 결과를 본 뒤 대기 화면(P3)에서만(2026.10.13 사용자).
      · 다섯을 다 고르면 「골랐어요」라고 말하고, 진행자 화면이 비율을 세어 장부에 적으면 P2로.
      · 고르다 만 사람은 폰 쪽지에 남겨 두었다가 이어서 고릅니다.
      ───────────────────────────────────────────────────────────────────── -->
@@ -43,8 +47,7 @@
         <p class="guide" id="guide" style="margin-top:12px"></p>
         <div class="chips" id="chips"></div>
         <p id="done"></p>
-        <p class="sub" id="wait"></p>
-      </div>
+          </div>
     </section>
   </main>
 </div>
@@ -57,9 +60,13 @@ const K = "dlk.picks." + ME;
 let picks = PH.load(K, []).filter(w => DLK.WORDS.some(o => o.w === w)).slice(0, DLK.PICK_N);
 let gone = false, locked = false;
 
+/* 고른 단어 줄 — 단어마다 한 덩어리(nowrap). 줄은 「 · 」 자리에서만 바뀝니다 */
+function paintDone(){
+  $("#done").innerHTML = picks.map(w => `<span>${DLK.esc(w)}</span>`).join(" · ");
+}
 function show(){
   const i = picks.length;
-  $("#done").textContent = picks.join("  ·  ");
+  paintDone();
   if(i >= DLK.PICK_N){ finish(); return; }
   $("#step").textContent = `${i + 1} / ${DLK.PICK_N}`;
   $("#guide").textContent = "가장 눈에 들어오는 단어 하나를 고르세요";
@@ -73,28 +80,29 @@ function choose(w, btn){
   if(locked) return; locked = true;
   btn.classList.add("on"); $("#chips").classList.add("lock");
   picks.push(w); PH.save(K, picks);
-  setTimeout(() => { PH.flash(); setTimeout(show, 80); }, 260);
+  /* 판 넘김에는 번쩍임 없이 칩 반전만 (2026.10.13 사용자 "칩반전만 남겨") */
+  setTimeout(show, 300);
 }
+/* 다섯을 다 고르면 「골랐어요」를 한 번 말하고 곧장 내 상태로 — 거기서 「당신을 읽는 중」으로 비율을 기다립니다.
+   (2026.10.13 사용자 "큐알을 스캔하고 이름 입력하고 그 다음 단어 선택하고 결과 확인한 다음 잠시만 기다려 주세요라고 나와야 해")
+   진행자 화면이 그 순간 못 들었으면 내 상태 화면이 폰 쪽지의 5개로 다시 말합니다. */
 function finish(){
   $("#step").textContent = `${DLK.PICK_N} / ${DLK.PICK_N}`;
-  $("#guide").textContent = "다 골랐어요";
+  $("#guide").textContent = "";
   $("#chips").innerHTML = "";
-  $("#wait").textContent = "진행자 화면에 연결하는 중";
-  /* ⛔ 장부에 5개가 닿은 것을 보고 나서 넘어갑니다 — 비율은 진행자 화면이 셉니다 */
-  Bus.sayUntil({pick:{id:ME, words:picks}}, b => sameAsMine(Bus.mine(b)));
+  Bus.say({pick:{id:ME, words:picks}});
+  goNext();
 }
-const sameAsMine = me => !!(me && me.picks && me.picks.length === DLK.PICK_N && me.picks.every((w, k) => w === picks[k]));
 function goNext(){
   if(gone) return; gone = true;
-  PH.flash();
-  setTimeout(() => Bus.go("p2-status.html"), 120);
+  Bus.go("p2-status.html");           /* 번쩍임 없음 */
 }
 
 Bus.onState(b => {
   const me = Bus.mine(b);
   if(!me || !me.name) return;                       /* 이름부터 — bus.js가 입장 화면에 붙잡아 둡니다 */
   /* 장부에 이미 5개와 비율이 있으면(새로고침·다시 찍음) 곧장 내 상태로 */
-  if(me.picks && me.picks.length === DLK.PICK_N && me.start){ picks = me.picks.slice(); PH.save(K, picks); goNext(); }
+  if(me.picks && me.picks.length === DLK.PICK_N && me.start){ picks = me.picks.slice(); PH.save(K, picks); gone = false; goNext(); }
 });
 show();
 </script>

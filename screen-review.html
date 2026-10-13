@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="font.css?b=261007-1">
 <link rel="stylesheet" href="screen.css?b=261007-1">
 <style>
+  [hidden]{display:none !important}   /* grid·flex 규칙에 숨김이 지지 않게 */
   /* ── 한 단어 화면 — 왼쪽 단어·숫자, 가운데 구, 오른쪽 가장 먼 두 사람 ── */
   .rv{flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1fr auto 1fr; gap:3vw;
       align-items:center; padding:2vh 0 1vh}
@@ -27,6 +28,14 @@
          font-size:var(--sub); color:var(--line); letter-spacing:.1em}
   .mid{position:relative}
   #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
+  /* ── 첫 장 — 많이 고른 단어 5개를 함께 (2026.10.13 사용자) ── */
+  #ov{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3.2vh}
+  #ov h2{padding-bottom:1vh}
+  #ov .r{display:grid; grid-template-columns:2em 14em 5em; gap:2.5vw; align-items:baseline}
+  #ov .r .k{font-size:var(--rank); color:var(--line); text-align:right; font-variant-numeric:tabular-nums}
+  #ov .r .w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.08em .35em; justify-self:start; word-break:keep-all}
+  #ov .r .n{font-size:var(--rank); color:var(--line); text-align:right; font-variant-numeric:tabular-nums}
+  #ov .r .n b{font-weight:400; color:var(--name)}
 </style>
 <script src="bus.js?b=261013-1"></script>
 <script src="data.js?b=261013-1"></script>
@@ -43,11 +52,13 @@
      · 단어 하나 = 포스터 단어 + 고른 사람 수 + 모인 답 수 + 그 단어의 거리 구에 답 전부를 점으로(흰 점)
        + 가장 먼 답 둘을 민트 점·이름표로, 오른쪽에 이름과 적은 말을 크게.
      · 어느 단어를 띄울지는 진행자 화면(장부 review.i)이 정합니다. 여기는 보여 주기만.
+     · review.i = -1 이면 첫 장: 많이 고른 단어 5개를 고른 수와 함께 한 화면에 (2026.10.13 사용자). 「다음 단어」로 1번부터.
      · 판정 없음 — 숫자도 맞음·틀림도 없습니다. 지도 밖 답은 껍질 바깥 흰 점(가장 먼 후보에선 뺌).
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
 <h1 class="stage"><span class="ko">리뷰</span><span class="la">REVIEW</span></h1>
 
+<section id="ov" hidden><h2>많이 고른 단어</h2></section>
 <main class="rv" id="rv" hidden>
   <div class="left">
     <p id="no"></p>
@@ -72,9 +83,18 @@ let key = null;
 function render(b){
   const R = b.review;
   const has = R && R.list && R.list.length;
-  $("#rv").hidden = !has; $("#idle").style.display = has ? "none" : "flex";
-  if(!has){ SPHERE.stop(); key = null; return; }
-  const i = Math.max(0, Math.min(R.list.length - 1, R.i || 0)), r = R.list[i];
+  $("#idle").style.display = has ? "none" : "flex";
+  if(!has){ $("#rv").hidden = true; $("#ov").hidden = true; SPHERE.stop(); key = null; return; }
+  const i = Math.max(-1, Math.min(R.list.length - 1, R.i == null ? -1 : R.i));
+  /* 첫 장 — 5개 함께 */
+  if(i < 0){
+    $("#rv").hidden = true; $("#ov").hidden = false; SPHERE.stop(); key = null;
+    $("#ov").innerHTML = `<h2>많이 고른 단어</h2>` + R.list.map((r, k) =>
+      `<div class="r"><span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span><span class="n"><b>${r.n}</b>명</span></div>`).join("");
+    return;
+  }
+  $("#ov").hidden = true; $("#rv").hidden = false;
+  const r = R.list[i];
   const k = i + "|" + r.w + "|" + r.ans.length;
   if(k === key) return;                              /* 같은 단어면 구를 다시 돌리지 않습니다 */
   key = k;

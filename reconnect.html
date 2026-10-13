@@ -85,7 +85,7 @@ function enter(){
   if(code.length < 6) return;
   const who = (book.players || []).find(p => p.code === code && p.name);
   if(!who){
-    $("#msg").textContent = Bus.mode() === "찾는 중" ? "진행자 화면에 연결하는 중" : "없는 코드";
+    $("#msg").textContent = Bus.mode() === "찾는 중" ? "잠시만 기다려 주세요" : "없는 코드";   /* 「연결하는 중」은 참가자에게 안 보입니다(2026.10.13) */
     PH.shake($("#slots"));
     setTimeout(() => { code = ""; paintSlots(); paintPad(); }, 320);
     setTimeout(() => $("#msg").textContent = "", 1600);

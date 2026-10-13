@@ -59,8 +59,7 @@ function check(raw){
 
 function goNext(){
   if(gone) return; gone = true;
-  PH.flash();
-  setTimeout(() => Bus.go("p1b-pick.html"), 120);
+  Bus.go("p1b-pick.html");            /* 번쩍임 없음 (2026.10.13 사용자 "번쩍번쩍하는 효과 지워줘") */
 }
 
 $("#enter").onclick = () => PH.commit($("#name"), raw => {
@@ -69,7 +68,8 @@ $("#enter").onclick = () => PH.commit($("#name"), raw => {
   $("#msg").textContent = "";
   sent = r.name;
   $("#enter").classList.add("dim");
-  if(!joined) $("#wait").textContent = "진행자 화면에 연결하는 중";
+  /* 장부에 닿기 전에는 「잠시만 기다려 주세요」 — 「연결하는 중」은 참가자에게 안 보입니다(2026.10.13 사용자) */
+  if(!joined) $("#wait").textContent = "잠시만 기다려 주세요";
   /* ⛔ 장부에 이름이 닿은 것을 **보고 나서** 넘어갑니다 — 곧바로 넘어가면
         다시 말할 기회가 같이 사라져 끝까지 이름 없는 사람이 됩니다 */
   Bus.sayUntil({name:{id:ME, name:sent}}, b => (Bus.mine(b) || {}).name === sent);

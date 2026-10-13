@@ -188,7 +188,7 @@ const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
 const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
 let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타임의 순서 */
-let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i} */
+let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
 let sents = {};        /* 단어별 문장에 쓰인 수 — 스크린 9.3 단어 순위 */
 let sentences = [];    /* {by, name, a, b, text} — 투표에 뜨려면 여기 있어야 합니다 */
@@ -262,7 +262,8 @@ function drawHero(){
       `<span><span class="k">${c.short}</span><span class="n">${a.g[i]}</span></span>`).join("")
       + `<span class="k">방 평균</span>` : "";
   else if(stage === "review") hero.innerHTML = review && review.list.length ?
-      `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>` : "";
+      (review.i < 0 ? `<span><span class="k">리뷰</span><span class="n">5</span><span class="k">함께 보기</span></span>`
+                    : `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>`) : "";
   else if(stage === "create") hero.innerHTML = a ?
       `<span><span class="k">OU</span><span class="n">${a.ou}</span></span><span class="k">방 평균</span>` : "";
   else if(stage === "vote") hero.innerHTML = `<span>투표 완료<span class="n">${voteDone()} / ${people.filter(p=>p.named).length}</span></span>`;
@@ -311,7 +312,8 @@ function bump(p){
    · 가장 먼 둘 — 거리표(SPHERE.measure)로 잽니다. 같으면 먼저 들어온 사람.
    · 지도 밖 답(어휘 5만에 없는 말)은 거리를 잴 수 없어 후보에서 뺍니다 — 오타·장난이 먼저 뽑히는 것을 막습니다
      (사용자 "오타와 장난 때문이라면 너의 판단에 따를게"). 점은 껍질 바깥에 그대로 찍힙니다.
-   · 답이 하나뿐이면 한 사람만, 없으면 「모인 답 없음」 — 설계가 아니라 빈 화면을 막는 대비.         */
+   · 답이 하나뿐이면 한 사람만, 없으면 「모인 답 없음」 — 설계가 아니라 빈 화면을 막는 대비.
+   · 첫 장은 5개를 함께 보는 목록(i = -1), 「다음 단어」로 1번부터 하나씩 (2026.10.13 사용자).           */
 function buildReview(){
   const top = Object.entries(picks).filter(([,v]) => v.n > 0)
     .sort((a,b) => b[1].n - a[1].n || a[1].at - b[1].at).slice(0, 5).map(([w, v]) => ({w, n:v.n}));
@@ -326,7 +328,7 @@ function buildReview(){
       .sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
     return {w, n, ans, far};
   });
-  review = {list, i:0};
+  review = {list, i:-1};          /* 먼저 5개를 함께 본 뒤 하나씩 (2026.10.13 사용자 "응 그렇게 해줘") */
   sync();
 }
 function drawReview(){
@@ -341,8 +343,10 @@ function drawReview(){
       + `<span class="k">${r.n}명 고름 · 답 ${r.ans.length}</span>`
       + `<span class="far">${far || `<span>모인 답 없음</span>`}</span></div>`;
   }).join("");
-  board.innerHTML = `<div class="review">${rows}<div class="nav">`
-    + `<button id="rvPrev" ${review.i <= 0 ? "disabled" : ""}>이전 단어</button>`
+  const over = `<div class="rw ${review.i < 0 ? "on" : ""}" data-k="-1"><span class="k"></span><span class="w">함께 보기</span>`
+    + `<span class="k">단어 5개 목록</span><span class="far"><span>스크린에 많이 고른 단어 5개가 한 화면에</span></span></div>`;
+  board.innerHTML = `<div class="review">${over}${rows}<div class="nav">`
+    + `<button id="rvPrev" ${review.i < 0 ? "disabled" : ""}>이전 단어</button>`
     + `<button id="rvNext" ${review.i >= review.list.length - 1 ? "disabled" : ""}>다음 단어</button></div>`
     + `<p class="note">스크린에 지금 단어가 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다.</p></div>`;
   board.querySelectorAll(".rw").forEach(el => el.onclick = () => setReview(+el.dataset.k));
@@ -351,7 +355,7 @@ function drawReview(){
 }
 function setReview(i){
   if(!review) return;
-  review.i = Math.max(0, Math.min(review.list.length - 1, i));
+  review.i = Math.max(-1, Math.min(review.list.length - 1, i));
   sync(); drawReview(); drawHero();
 }
 

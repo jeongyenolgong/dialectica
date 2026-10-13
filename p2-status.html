@@ -17,8 +17,7 @@
   .big .bar i{display:block; background:var(--dim)}
   .big .bar i.on{background:var(--gc)}
   #who{font-size:20px; color:var(--line); min-height:1.4em}
-  #goal{margin-top:30px; visibility:hidden}
-  #next{visibility:hidden}
+  #next{visibility:hidden; margin-top:34px}
 </style>
 <script src="bus.js?b=261013-1"></script>
 <script src="data.js?b=261013-1"></script>
@@ -29,7 +28,7 @@
      P2 내 상태 — 입장 때 고른 5개에서 나온 세 캐릭터의 출발 비율을 보여 줍니다 (2026.10.13)
      비율 = 고른 단어의 캐릭터 수 × 20. 진행자 화면이 세어 장부에 적습니다(DLK.startFrom).
      ⛔ 10.07의 난수 비율(합 100 · 10 단위 · 10~70)은 폐기.
-     수집 단계의 목표는 이 세 게이지를 **각각 100까지** 채우는 것입니다.
+     ⛔ 「단어를 모아 세 게이지를 모두 100으로 채우세요」 안내는 뺐습니다(2026.10.13 사용자 "삭제").
      ───────────────────────────────────────────────────────────────────── -->
 <div class="phone">
   <div class="head"><span class="ttl">디알렉티카</span></div>
@@ -40,7 +39,6 @@
         <p id="who"></p>
         <p class="guide" id="guide" style="margin-top:10px"></p>
         <div class="big" id="big"></div>
-        <p class="sub" id="goal">단어를 모아 세 게이지를<br>모두 100으로 채우세요</p>
         <button class="btn" id="next">다음</button>
       </div>
     </section>
@@ -63,32 +61,39 @@ function paint(vals){
   });
 }
 
-/* 연출 — 「당신을 읽는 중」 → 세 막대가 한 칸씩 차오르며 각자 자리에 섭니다 */
+/* 연출 — 「당신을 읽는 중」이 점 셋을 두 바퀴 돌 동안(약 2.6초) 머물고, 그 뒤 세 막대가 한 칸씩 차오릅니다.
+   (2026.10.13 사용자 "당신을 읽는 중은 화면에서 너무 금방 사라져 … 조금 더 지속되어야 해") 번쩍임 없음 */
+const READ_MS = 2600, DOT_MS = 400;
 function reveal(start, name){
   if(shown) return; shown = true;
   $("#who").textContent = name ? `${name} 님` : "";
   const g = $("#guide");
   g.textContent = "당신을 읽는 중";
-  [1,2,3].forEach(n => PH.later(n*220, () => g.textContent = "당신을 읽는 중" + "·".repeat(n)));
-  const A = 3*220 + 200;
+  for(let n = 1; n * DOT_MS < READ_MS; n++) PH.later(n*DOT_MS, () => g.textContent = "당신을 읽는 중" + "·".repeat((n - 1) % 3 + 1));
+  const A = READ_MS;
   for(let k = 1; k <= 7; k++)
     PH.later(A + k*120, () => paint(start.map(v => Math.min(v, k*10))));
   PH.later(A + 7*120 + 100, () => {
-    PH.flash(); paint(start);
+    paint(start);
     g.textContent = "나의 출발점";
   });
-  PH.later(A + 7*120 + 500, () => {
-    $("#goal").style.visibility = "visible";
-    $("#next").style.visibility = "visible";
-  });
+  PH.later(A + 7*120 + 500, () => { $("#next").style.visibility = "visible"; });
 }
 
-$("#next").onclick = () => { PH.flash(); setTimeout(() => Bus.go("p3-wait.html"), 120); };
+$("#next").onclick = () => Bus.go("p3-wait.html");
 
+/* 비율이 오기 전 — 「당신을 읽는 중」만 보입니다. 「연결하는 중」 같은 말은 참가자에게 보이지 않습니다(2026.10.13 사용자).
+   진행자 화면이 고르기 말을 못 들었으면 폰 쪽지의 5개로 닿을 때까지 다시 말합니다 */
+let asked = false;
+$("#guide").textContent = "당신을 읽는 중";
 Bus.onState(b => {
   const me = Bus.mine(b);
-  if(!me){ $("#guide").textContent = "진행자 화면에 연결하는 중"; return; }
-  if(me.start) reveal(me.start, me.name);
+  if(!me) return;
+  if(me.start){ reveal(me.start, me.name); return; }
+  if(!asked){
+    const picks = PH.load("dlk.picks." + Bus.me(), []);
+    if(picks.length === DLK.PICK_N){ asked = true; Bus.sayUntil({pick:{id:me.id, words:picks}}, bb => !!(Bus.mine(bb) || {}).start); }
+  }
 });
 </script>
 </body>
