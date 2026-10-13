@@ -7,41 +7,93 @@
 <link rel="stylesheet" href="font.css?b=261007-1">
 <link rel="stylesheet" href="screen.css?b=261007-1">
 <style>
-  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr); padding:4vh 0 2vh; min-height:0; align-items:center}
-  .right{display:flex; flex-direction:column; align-items:center}
-  .right .bars{max-width:46vw}
+  main{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1vh 0; min-height:0; overflow:hidden}
+  /* ── 처음 / 현재 — 캐릭터마다 막대 두 줄 (2026.10.14 사용자 "처음 이 방의 평균은 이랬는데 현재는 이렇게 바뀌었다") ── */
+  .cmp{display:flex; flex-direction:column; gap:3.6vh; width:min(78vw, 1500px)}
+  .c{display:flex; flex-direction:column; gap:1.4vh}
+  .c .nm{font-size:var(--title); letter-spacing:.06em; color:var(--gc); line-height:1.2}
+  .row{display:grid; grid-template-columns:3.6em 1fr 3em; gap:1.4vw; align-items:center}
+  .row .lb{font-size:var(--rank); color:var(--line); letter-spacing:.08em; white-space:nowrap}
+  .row .cells{display:grid; grid-template-columns:repeat(20,1fr); gap:.3vw; height:3vh}
+  .row .cells i{display:block; background:var(--dim)}
+  .row.was .cells i.on{background:var(--line)}
+  .row.now .cells i.on{background:var(--gc)}
+  .row .v{font-size:var(--rank); text-align:right; font-variant-numeric:tabular-nums; color:var(--line)}
+  .row.now .v{color:var(--gc)}
+  .diff{font-size:var(--rank); text-align:right; font-variant-numeric:tabular-nums; color:var(--name); min-height:1.2em; margin-top:-.4vh}
+  .diff.up::before{content:"+"}
+  .diff.same{color:var(--line)}
+  #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
 </style>
-<script src="bus.js?b=261014-2"></script>
+<script src="bus.js?b=261014-3"></script>
 <script src="data.js?b=261014-1"></script>
 <script src="screen.js?b=261013-2"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
-     스크린 9.5 결과 (2026.10.07 · 2026.10.13 창작·투표 삭제)
-     방 평균 세 막대 — 「모두가 100이 된 상태를 확인하며 끝나는」 장면
-     ⛔ 득표 문장 다섯 · OU 막대는 투표·창작과 함께 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제").
-     ⛔ 우승 팀 · 최다 득표 개인 · 최종 누적 순위는 없앴습니다(2026.10.07).
-     ⭐ 등장 연출은 없습니다 — 리뷰가 끝나면 즉시 결과판.
-     🔴 결과 화면에 무엇을 더 보일지는 미정 — 사용자가 리뷰 내용을 세밀하게 정한 뒤 따라갑니다.
+     스크린 결과 (2026.10.07 · 2026.10.13 창작·투표 삭제 · 2026.10.14 처음/현재)
+     사용자(2026.10.14) "처음 이 방의 평균은 이랬는데 현재는 이렇게 바뀌었다 이런 구조가 되면 좋겠어."
+     · 처음 = 입장 때 고른 단어 다섯으로 정한 출발 비율(장부 p.start)의 전원 평균
+     · 현재 = 출발 비율에 수집한 단어를 더한 비율(장부 p.g)의 전원 평균 — 전과 같은 「방 평균」
+     · 캐릭터마다 「시작」 「현재」 막대 두 줄과 값, 아래에 차이(+ / −). 이름을 낸 사람만 셉니다.
+     · 「처음 이 방은 · N명」「지금 이 방은」 문구는 뺐고 가운데를 크게(2026.10.14 사용자 "이런 코멘트 필요 없어 중앙에 오는 내용을 더 크게", "시작과 현재로")
+     · 연출: 처음 막대가 먼저 서고 한 박자 뒤 지금 막대가 자랍니다 — 🔴목업 단계, 사용자 결정 전
+     ⛔ 득표 문장 다섯 · OU 막대는 투표·창작과 함께 없앴습니다(2026.10.13). 우승 팀 · 최다 득표 개인 · 최종 누적 순위는 없앴습니다(2026.10.07).
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
 <h1 class="stage"><span class="ko">결과 발표</span><span class="la">FINAL RESULT</span></h1>
-
-<main>
-  <section class="right"><h2>방 평균</h2><div class="bars" id="bars"></div></section>
+<main id="main" hidden>
+  <div class="cmp" id="cmp"></div>
 </main>
-
+<div id="idle">결과를 준비하는 중</div>
 <script>
+const $ = s => document.querySelector(s);
 SC.sizes();
-const setBars = SC.bars(document.getElementById("bars"), DLK.CHARS);
-let book = Bus.state();
-function render(){
-  const a = SC.roomAvg(book);
-  setBars(a ? a.g : null);
+const C = DLK.CHARS;
+$("#cmp").innerHTML = C.map(c => `<div class="c" style="--gc:${c.color}"><div class="nm">${c.ko}</div>
+  <div class="row was"><span class="lb">시작</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
+  <div class="row now"><span class="lb">현재</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
+  <div class="diff"></div></div>`).join("");
+
+/* 처음 — 출발 비율의 전원 평균. 현재 — SC.roomAvg(수집까지 더한 비율) */
+function startAvg(b){
+  const P = (b.players || []).filter(p => p.name && p.start);
+  if(!P.length) return null;
+  const s = [0,0,0]; P.forEach(p => p.start.forEach((v,i) => s[i] += v));
+  return s.map(v => Math.round(v / P.length));
 }
-Bus.onState(b => { book = b; render(); });
-addEventListener("resize", () => { SC.sizes(); render(); });
-render();
+let key = null, timers = [];
+function fill(row, v, delay){
+  const cells = [...row.querySelectorAll(".cells i")];
+  cells.forEach(c => c.classList.remove("on"));
+  row.querySelector(".v").textContent = "";
+  if(v == null) return;
+  cells.forEach((c, k) => { if(v >= (k+1)*5) timers.push(setTimeout(() => c.classList.add("on"), delay + k*45)); });
+  timers.push(setTimeout(() => { row.querySelector(".v").textContent = v; }, delay + Math.ceil(v/5)*45));
+}
+function render(b){
+  const was = startAvg(b), now = (SC.roomAvg(b) || {}).g || null;
+  const has = was && now;
+  $("#idle").style.display = has ? "none" : "flex";
+  $("#main").hidden = !has;
+  if(!has) return;
+  const k = was.join(",") + "|" + now.join(",");
+  if(k === key) return; key = k;
+  timers.forEach(clearTimeout); timers = [];
+  [...$("#cmp").children].forEach((el, i) => {
+    fill(el.querySelector(".row.was"), was[i], 200);
+    fill(el.querySelector(".row.now"), now[i], 1600);
+    const d = el.querySelector(".diff"); d.textContent = ""; d.className = "diff";
+    timers.push(setTimeout(() => {
+      const df = now[i] - was[i];
+      d.textContent = df === 0 ? "그대로" : (df > 0 ? df : "−" + (-df));
+      d.className = "diff " + (df > 0 ? "up" : df < 0 ? "down" : "same");
+    }, 1600 + Math.ceil(now[i]/5)*45 + 200));
+  });
+}
+Bus.onState(render);
+addEventListener("resize", () => { SC.sizes(); key = null; render(Bus.state()); });
+render(Bus.state());
 </script>
 </body>
 </html>
