@@ -179,7 +179,8 @@ const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타임의 순서 */
 let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
-let seq = 0, gen = 0;
+let seq = 0, gen = 0, gid = newGid();
+function newGid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 다시 말하기를 그칩니다 */
 
 const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
@@ -355,7 +356,7 @@ function sync(){
       id:p.id, name:p.named ? p.name : "", code:p.code, picks:p.picks, start:p.start,
       got:p.got, cnt:p.got.length, g:gOf(p), at:p.at || 0
     })),
-    picks, review, words, gen, ack
+    picks, review, words, gen, gid, ack
   });
 }
 function remember(id, kind, n){
@@ -470,8 +471,8 @@ function newGame(){
   Object.keys(ack).forEach(k => delete ack[k]);
   seq = 0; stage = "entry"; press = 0;
   noted = "새 판을 열었습니다";
-  gen++;
-  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, ack:{}});
+  gen++; gid = newGid();
+  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, gid, ack:{}});
   draw();
 }
 
@@ -531,7 +532,7 @@ Bus.onState(b => {
       got:p.got || [], at:p.at || 0, mock:String(p.id).startsWith("mock")
     }));
     picks = b.picks || {}; review = b.review || null;
-    words = b.words || {}; gen = b.gen || 0;
+    words = b.words || {}; gen = b.gen || 0; gid = b.gid || gid;
     Object.assign(ack, b.ack || {});
     seq = Math.max(0, ...people.map(p => p.at || 0));
     press = b.press || 0;
@@ -539,7 +540,7 @@ Bus.onState(b => {
     noted = `장부를 이어받음 · ${people.length}명`;
     draw();
   }else{
-    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, ack:{}});
+    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, gid, ack:{}});
   }
 });
 draw();

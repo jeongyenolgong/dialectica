@@ -17,7 +17,7 @@
    화면 대응표(8.1)는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "261013-3";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261014-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
@@ -103,16 +103,32 @@
     location.replace(file + url.search);
   }
 
-  let lastGen = null;
+  /* ⭐ 판 표식 — 진행자가 「종료」로 새 판을 열면(또는 장부를 새로 시작하면) 바뀝니다.
+     폰은 마지막으로 본 표식을 쪽지(dlk.round)에 적어 두고, 다른 표식의 장부가 오면
+     **이 폰의 쪽지를 전부 지우고**(이름표·고른 단어·모은 쌍) 처음 화면으로 갑니다.
+     ⛔ 메모리 변수로만 견주면 폰이 닫혀 있던 사이에 바뀐 판을 못 알아봐
+        앞사람의 단어 다섯이 다음 사람 것으로 올라갑니다(2026.10.14 사용자 보고). */
+  const K_ROUND = "dlk.round";
+  function roundOf(b) { return b.gid || (typeof b.gen === "number" ? "g" + b.gen : null); }
+  function wipePhone() {
+    try {
+      Object.keys(localStorage)
+        .filter(k => k === "dlk.me" || /^dlk\.(picks|pairs|sents)\./.test(k))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+  }
   function gotBook(next) {
     if (!next || typeof next !== "object") return;
-    /* ⭐ 진행자가 「종료」를 누르면 판 번호가 오릅니다 — 폰은 처음 화면으로 */
-    if (typeof next.gen === "number") {
-      if (lastGen !== null && next.gen !== lastGen && role === "phone") {
-        lastGen = next.gen;
-        return window.Bus.go("p1-identity.html");
+    if (role === "phone") {
+      const r = roundOf(next);
+      if (r) {
+        let seen = null;
+        try { seen = localStorage.getItem(K_ROUND); } catch (e) {}
+        if (seen !== r) {
+          try { localStorage.setItem(K_ROUND, r); } catch (e) {}
+          if (seen) { wipePhone(); return window.Bus.go("p1-identity.html"); }
+        }
       }
-      lastGen = next.gen;
     }
     const before = book.press;
     book = { press: 0, players: [], ...next };
