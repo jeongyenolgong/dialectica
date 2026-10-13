@@ -7,15 +7,15 @@
 <title>디알렉티카 — 입장</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
 <link rel="stylesheet" href="phone.css?b=261012-1">
-<script src="bus.js?b=261007-1"></script>
-<script src="data.js?b=261012-1"></script>
+<script src="bus.js?b=261013-1"></script>
+<script src="data.js?b=261013-1"></script>
 <script src="phone.js?b=261007-1"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
      P1 입장 — 초대장 QR로 들어오는 문 (2026.10.07)
-     ① 「나를 넣어 주세요」라고 말합니다 → 진행자 화면이 개인 코드와 출발 비율을 정합니다
-     ② 이름을 넣고 「입장」 → P2에서 내 상태(세 캐릭터 비율)를 봅니다
+     ① 「나를 넣어 주세요」라고 말합니다 → 진행자 화면이 개인 코드를 정합니다(출발 비율은 고른 5개에서)
+     ② 이름을 넣고 「입장」 → P1b에서 30개 중 5개를 고르고(2026.10.13) → P2에서 내 상태(세 캐릭터 비율)를 봅니다
      ⭐ 초대장 QR은 모두 같습니다. 사람을 가르는 것은 이 폰입니다(새로 찍어도 같은 사람).
      ⛔ 다시 들어오는 사람(폰 기록이 날아간 사람)은 이 문이 아니라 재접속 QR로 옵니다.
      ───────────────────────────────────────────────────────────────────── -->
@@ -60,7 +60,7 @@ function check(raw){
 function goNext(){
   if(gone) return; gone = true;
   PH.flash();
-  setTimeout(() => Bus.go("p2-status.html"), 120);
+  setTimeout(() => Bus.go("p1b-pick.html"), 120);
 }
 
 $("#enter").onclick = () => PH.commit($("#name"), raw => {

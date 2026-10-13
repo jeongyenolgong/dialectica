@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>fig-review</title>
+<style>
+  body{margin:0; background:#fff; padding:0}
+  iframe{width:1600px; height:900px; border:0; display:block}
+</style>
+<script>/* 장부 씨앗 — 비어 있으면 bus.js가 첫 화면으로 돌려보냅니다(혼자 모드). 이 단계의 누름 수를 먼저 심습니다 */
+try{ localStorage.setItem("dlk.book", JSON.stringify({press:2, players:[]})); }catch(e){}</script>
+</head>
+<body>
+  <!-- 기획서 그림 — 리뷰 스크린 한 단어. 실제 screen-review.html을 띄우고 장부(review)를 넣습니다 -->
+  <iframe id="f" src="../screen-review.html?room=fig"></iframe>
+<script>
+  const f = document.getElementById("f");
+  f.addEventListener("load", () => setTimeout(() => {
+    const w = f.contentWindow;
+    const word = "경계";
+    const raw = [["김서연","연결"],["이지훈","안주"],["박수민","중심"],["최유진","개방"],["정하늘","바나나"],["강도윤","ㅋㅋ"],["조서아","자유"],["윤재현","무한"],["장지우","소통"]];
+    const ans = raw.map(([name, a]) => ({name, a, d: w.SPHERE.measure(word, a)}));
+    const far = ans.map((x,k) => [k, x.d]).filter(x => x[1] != null).sort((x,y) => y[1]-x[1]).slice(0,2).map(x => x[0]);
+    w.render({review:{list:[{w:word, n:11, ans, far},{w:"도전",n:9,ans:[],far:[]},{w:"일상",n:8,ans:[],far:[]},{w:"본질",n:7,ans:[],far:[]},{w:"상상",n:6,ans:[],far:[]}], i:0}});
+    console.log(JSON.stringify(ans.map(x => [x.a, x.d && x.d.toFixed(2)])), far);
+  }, 600));
+</script>
+</body></html>

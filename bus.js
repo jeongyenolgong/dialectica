@@ -2,7 +2,7 @@
    bus.js — 모두가 같은 장부 한 권을 본다
 
    **장부(book)** — 지금 판의 전부. 진행자 화면만 적고, 나머지는 읽기만 한다.
-       { press: 0~7, players: [ {id, name, code, start:[3], got:[{w,a}], ...} ] }
+       { press: 0~7, players: [ {id, name, code, picks:[5], start:[3], got:[{w,a}], ...} ], review:{list, i} }
    **말(say)** — 스쳐 지나가는 한마디. 누구나 보낸다. 장부에 남지 않는다.
        {join:{id}} · {name:{id, name}} · {collect} · {sentence} · {vote}
    폰은 「나를 넣어 주세요」라고 말하고, **진행자 화면이 받아 적어 장부에 올린다.**
@@ -17,7 +17,7 @@
    화면 대응표(8.1)는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "261007-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261013-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
@@ -28,7 +28,7 @@
   const SCREEN = [
     "screen-01-entry.html",     /* 0 · 입장 중 */
     "screen-02-collect.html",   /* 1 · 수집 시작 */
-    null,                       /* 2 · 수집 종료 — 방금 끝난 판을 그대로 멈춰 둔다 */
+    "screen-review.html",       /* 2 · 수집 종료 = 리뷰 타임 — 많이 고른 단어 5개를 하나씩 (2026.10.13) */
     "screen-03-create.html",    /* 3 · 창작 시작 */
     null,                       /* 4 · 창작 종료 — 위와 같다 */
     "screen-04-vote.html",      /* 5 · 투표 시작 */
@@ -38,7 +38,7 @@
   const PHONE = [
     null,                          /* 0 · P1→P2→P3를 참가자가 스스로 밟는 중이라 안 건드린다 */
     "p4p5-collect.html",           /* 1 · 단어 입력 ⇄ 조건 답 */
-    "p3-wait.html",                /* 2 · 대기② */
+    "p3-wait.html",                /* 2 · 대기② — 리뷰 타임은 스크린만 */
     "p6-create.html",              /* 3 · P6 */
     "p3-wait.html",                /* 4 · 대기③ */
     "p8p9-vote-result.html",       /* 5 · P8 */
@@ -82,11 +82,12 @@
       target = "p1-identity.html";
     }
     if (!target) return;                          /* 그대로 둔다 */
-    /* ⭐ 아직 이름을 안 낸 사람은 입장 화면에 붙잡아 둡니다 — 판 중간에 처음 들어온 사람이
-       이름도 없이 수집 화면으로 끌려가면 순위에도 장부에도 「이름 없는 사람」으로 남습니다 */
-    if (role === "phone" && /^p[12]-/.test(here)) {
+    /* ⭐ 아직 이름을 안 냈거나 5개를 다 안 고른 사람은 입장 화면에 붙잡아 둡니다 — 판 중간에 처음 들어온 사람이
+       이름도 없이 수집 화면으로 끌려가면 순위에도 장부에도 「이름 없는 사람」으로 남습니다.
+       출발 비율은 고른 5개에서 나오므로(2026.10.13) 고르기를 마쳐야 게이지가 생깁니다 */
+    if (role === "phone" && /^p(1|1b|2)-/.test(here)) {
       const mine = (book.players || []).find(p => p.id === window.Bus.me());
-      if (!mine || !mine.name) return;
+      if (!mine || !mine.name || !mine.start) return;
     }
 
     const now = new URLSearchParams(location.search);

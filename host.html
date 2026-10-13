@@ -58,6 +58,22 @@
   .board li .num b{color:var(--fg); font-weight:400}
   .board li.miss{opacity:.16}
   .board li.done .num b{text-decoration:underline; text-underline-offset:4px}
+
+  /* ── 리뷰 타임 — 많이 고른 단어 5개. 진행자가 하나씩 넘깁니다 (2026.10.13) ── */
+  .review{display:flex; flex-direction:column; gap:6px; padding:10px 16px}
+  .review .rw{display:grid; grid-template-columns:2.2em 9em 8em 1fr; gap:14px; align-items:baseline;
+              padding:8px 12px; cursor:pointer; border:1px solid transparent}
+  .review .rw:hover{background:rgba(255,255,255,.07)}
+  .review .rw.on{border-color:var(--fg)}
+  .review .rw .w{font-family:"Galmuri11",monospace; font-size:20px}
+  .review .rw .k{color:var(--dim); font-variant-numeric:tabular-nums}
+  .review .rw .far{display:flex; gap:22px; flex-wrap:wrap}
+  .review .rw .far span b{font-weight:400; color:var(--fg)}
+  .review .rw .far span{color:var(--dim)}
+  .review .nav{display:flex; gap:10px; justify-content:center; padding-top:14px}
+  .review .nav button{background:transparent; color:var(--fg); border:1px solid var(--fg); padding:7px 22px}
+  .review .nav button:disabled{color:var(--dim); border-color:var(--line); cursor:default}
+  .review .note{color:var(--dim); text-align:center; padding-top:10px}
   .board::-webkit-scrollbar{width:6px}
   .board::-webkit-scrollbar-thumb{background:var(--line)}
   @keyframes rowin{0%{background:rgba(255,255,255,.55)} 100%{background:transparent}}
@@ -95,8 +111,11 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261007-1"></script>
-<script src="data.js?b=261012-1"></script>
+<script src="bus.js?b=261013-1"></script>
+<script src="data.js?b=261013-1"></script>
+<script src="sphere-table.js?b=261012-7"></script>
+<script src="sphere-lookup.js?b=261012-1"></script>
+<script src="sphere.js?b=261013-1"></script>
 </head>
 <body>
 
@@ -147,7 +166,8 @@
    진행자 화면 = 장부의 주인 (2026.10.07)
    ⭐ 팀이 없어졌습니다 — 전부 개인전. 화면은 팀 3열 대신 이름이 들어온 순서대로 한 판입니다.
    ⭐ 셈은 여기 한 곳에서만 합니다. 폰은 「모았어요」·「썼어요」·「골랐어요」라고 말할 뿐입니다.
-      · 입장 — 개인 코드(6자리 난수)와 출발 비율(DLK.drawStart)을 여기서 정합니다
+      · 입장 — 개인 코드(6자리 난수)를 여기서 정합니다. 출발 비율은 폰이 고른 5개를 받아 셉니다(DLK.startFrom, 2026.10.13)
+      · 리뷰 — 수집 종료 = 리뷰 타임. 많이 고른 단어 5개와 단어마다 가장 먼 답 둘을 여기서 뽑아 장부에 올립니다(buildReview)
       · 수집 — 단어 하나 = 수집 점수 1(모은 개수). 게이지는 DLK.gauges가 셉니다
       · 창작 — 문장 하나 = OU +10 (DLK.ouOf)
       · 투표 — 득표만 셉니다. 게이지는 안 오릅니다
@@ -158,7 +178,7 @@ const GIV = ["서연","지훈","수민","유진","하늘","도윤","서아","재
              "민준","나윤","지호","채원","시우","현우","아름","은성","도현","수빈","가온","루하"];
 const nameAt = k => SUR[k % SUR.length] + GIV[(k*7) % GIV.length];
 
-/* people: {id, name, named, code, start, got:[{w,a,n}], sent, at, voted, mock} */
+/* people: {id, name, named, code, picks:[5], start, got:[{w,a,n}], sent, at, voted, mock} */
 let people = [];
 let stage = "entry";
 let press = 0;
@@ -167,6 +187,8 @@ let timers = [];
 const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
 const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
+let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타임의 순서 */
+let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i} */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
 let sents = {};        /* 단어별 문장에 쓰인 수 — 스크린 9.3 단어 순위 */
 let sentences = [];    /* {by, name, a, b, text} — 투표에 뜨려면 여기 있어야 합니다 */
@@ -182,10 +204,11 @@ const ouOfP = p => DLK.ouOf(p.sent);
 const PRESSES = [
   {at:"entry",   l1:"수집을 시작합니다", l2:"참가자 전원이 단어 수집 화면으로 넘어갑니다.",
                  go:"시작", act(){ stage = "collect"; runMockCollect(); }},
-  {at:"collect", l1:"수집을 종료합니다", l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다.",
-                 go:"종료", warn:true, act(){ clearAll(); stage = "create"; }},
-  {at:"create",  l1:"창작을 시작합니다", l2:"참가자 전원이 문장 창작 화면으로 넘어갑니다.",
-                 go:"시작", act(){ runMockCreate(); }},
+  {at:"collect", l1:"수집을 종료하고 리뷰를 시작합니다",
+                 l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다. 스크린에 많이 고른 단어 5개가 하나씩 뜹니다.",
+                 go:"종료", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
+  {at:"review",  l1:"창작을 시작합니다", l2:"참가자 전원이 문장 창작 화면으로 넘어갑니다.",
+                 go:"시작", act(){ stage = "create"; runMockCreate(); }},
   {at:"create",  l1:"창작을 종료합니다", l2:"쓰는 중인 문장은 제출되지 않습니다.",
                  go:"종료", warn:true, act(){ clearAll(); stage = "vote"; }},
   {at:"vote",    l1:"투표를 시작합니다", l2:"참가자 전원이 투표 화면으로 넘어갑니다.",
@@ -198,7 +221,7 @@ const PRESSES = [
                  l2:"이 판의 결과가 지워지고 참가자 폰이 전부 처음 화면으로 돌아갑니다.",
                  go:"종료", warn:true, act(){ newGame(); }},
 ];
-const ORDER = ["entry","collect","create","vote","result"];
+const ORDER = ["entry","collect","review","create","vote","result"];
 
 /* 방 평균 — 이름을 낸 사람만 셉니다 */
 function avg(){
@@ -211,8 +234,8 @@ function avg(){
 
 /* 사람 옆 숫자 — 그 단계에서 세는 것 */
 function personNum(p){
-  if(stage === "entry")   return p.start ? `<span>${p.start.join(" · ")}</span>` : "";
-  if(stage === "collect"){ const g = gOf(p);
+  if(stage === "entry")   return p.start ? `<span>${p.start.join(" · ")}</span>` : `<span>고르는 중</span>`;
+  if(stage === "collect" || stage === "review"){ const g = gOf(p);
     return `<b>${p.got.length}</b>개 &nbsp; ${g.join(" · ")}`; }
   if(stage === "create")  return `<b>${p.sent}</b>편 &nbsp; OU ${ouOfP(p)}`;
   if(stage === "vote")    return p.voted ? "<b>완료</b>" : "";
@@ -225,7 +248,7 @@ const board = document.getElementById("board");
 const hero  = document.getElementById("hero");
 
 function drawCrumb(){
-  const names = ["입장","수집","창작","투표","결과"];
+  const names = ["입장","수집","리뷰","창작","투표","결과"];
   const now = ORDER.indexOf(stage);
   document.getElementById("crumb").innerHTML = names
     .map((n,i) => `<b class="${i === now ? "on" : ""}">${n}</b>`).join("<span>›</span>");
@@ -238,6 +261,8 @@ function drawHero(){
   else if(stage === "collect") hero.innerHTML = a ? C.map((c,i) =>
       `<span><span class="k">${c.short}</span><span class="n">${a.g[i]}</span></span>`).join("")
       + `<span class="k">방 평균</span>` : "";
+  else if(stage === "review") hero.innerHTML = review && review.list.length ?
+      `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>` : "";
   else if(stage === "create") hero.innerHTML = a ?
       `<span><span class="k">OU</span><span class="n">${a.ou}</span></span><span class="k">방 평균</span>` : "";
   else if(stage === "vote") hero.innerHTML = `<span>투표 완료<span class="n">${voteDone()} / ${people.filter(p=>p.named).length}</span></span>`;
@@ -247,6 +272,8 @@ function drawHero(){
 function draw(){
   if(stage === "result"){
     board.innerHTML = `<div class="final">스크린에서 결과를 확인하세요<div class="found" id="found"></div></div>`;
+  }else if(stage === "review"){
+    drawReview();
   }else{
     board.innerHTML = `<ul id="ul"></ul>`;
     const ul = document.getElementById("ul");
@@ -277,15 +304,66 @@ function bump(p){
   drawHero(); gauge();
 }
 
+/* ══ 리뷰 타임 (2026.10.13 사용자) ═══════════════════════════════════════
+   「사람들이 가장 많이 선택한 단어 5개를 하나씩 보여주는데 해당 단어에서 가장 거리가 먼 단어를
+    입력한 두 사람을 소개하고 그 사람이 입력한 단어를 함께 보는 걸로 할게.」
+   · 순서 — 입장 때 고른 수가 많은 단어부터. 같으면 먼저 고른 단어.
+   · 가장 먼 둘 — 거리표(SPHERE.measure)로 잽니다. 같으면 먼저 들어온 사람.
+   · 지도 밖 답(어휘 5만에 없는 말)은 거리를 잴 수 없어 후보에서 뺍니다 — 오타·장난이 먼저 뽑히는 것을 막습니다
+     (사용자 "오타와 장난 때문이라면 너의 판단에 따를게"). 점은 껍질 바깥에 그대로 찍힙니다.
+   · 답이 하나뿐이면 한 사람만, 없으면 「모인 답 없음」 — 설계가 아니라 빈 화면을 막는 대비.         */
+function buildReview(){
+  const top = Object.entries(picks).filter(([,v]) => v.n > 0)
+    .sort((a,b) => b[1].n - a[1].n || a[1].at - b[1].at).slice(0, 5).map(([w, v]) => ({w, n:v.n}));
+  const list = top.map(({w, n}) => {
+    const ans = [];
+    people.filter(p => p.named).forEach(p => (p.got || []).forEach(x => {
+      if(x.w !== w) return;
+      let d = null; try { d = SPHERE.measure(w, x.a); } catch(e) { d = null; }
+      ans.push({name:p.name, a:x.a, d});
+    }));
+    const far = ans.map((x, k) => [k, x.d]).filter(x => x[1] != null)
+      .sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
+    return {w, n, ans, far};
+  });
+  review = {list, i:0};
+  sync();
+}
+function drawReview(){
+  if(!review || !review.list.length){
+    board.innerHTML = `<div class="review"><p class="note">리뷰할 단어가 없습니다 — 입장 때 고른 단어가 없습니다.</p></div>`;
+    return;
+  }
+  const rows = review.list.map((r, k) => {
+    const far = r.far.map(j => r.ans[j]).map(x => `<span><b>${DLK.esc(x.name)}</b> ${DLK.esc(x.a)}</span>`).join("");
+    return `<div class="rw ${k === review.i ? "on" : ""}" data-k="${k}">`
+      + `<span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span>`
+      + `<span class="k">${r.n}명 고름 · 답 ${r.ans.length}</span>`
+      + `<span class="far">${far || `<span>모인 답 없음</span>`}</span></div>`;
+  }).join("");
+  board.innerHTML = `<div class="review">${rows}<div class="nav">`
+    + `<button id="rvPrev" ${review.i <= 0 ? "disabled" : ""}>이전 단어</button>`
+    + `<button id="rvNext" ${review.i >= review.list.length - 1 ? "disabled" : ""}>다음 단어</button></div>`
+    + `<p class="note">스크린에 지금 단어가 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다.</p></div>`;
+  board.querySelectorAll(".rw").forEach(el => el.onclick = () => setReview(+el.dataset.k));
+  document.getElementById("rvPrev").onclick = () => setReview(review.i - 1);
+  document.getElementById("rvNext").onclick = () => setReview(review.i + 1);
+}
+function setReview(i){
+  if(!review) return;
+  review.i = Math.max(0, Math.min(review.list.length - 1, i));
+  sync(); drawReview(); drawHero();
+}
+
 /* ══ 장부 ═══════════════════════════════════════════════════════════════ */
 function sync(){
   Bus.publish({
     players: people.map(p => ({
-      id:p.id, name:p.named ? p.name : "", code:p.code, start:p.start,
+      id:p.id, name:p.named ? p.name : "", code:p.code, picks:p.picks, start:p.start,
       got:p.got, cnt:p.got.length, sent:p.sent, g:gOf(p), ou:ouOfP(p),
       at:p.at || 0, voted:!!p.voted, votes:Object.keys(ballots[p.id] || {}).length
     })),
-    words, sents, sentences, duels, wins, gen, ack
+    picks, review, words, sents, sentences, duels, wins, gen, ack
   });
 }
 function remember(id, kind, n){
@@ -301,7 +379,7 @@ function newCode(){
 
 function joinReal(id, mock){
   if(people.some(p => p.id === id)) return null;   /* 새로고침해도 두 번 들어오지 않는다 */
-  const p = {id, name:"", named:false, code:newCode(), start:DLK.drawStart(),
+  const p = {id, name:"", named:false, code:newCode(), picks:null, start:null,
              got:[], sent:0, at:0, voted:false, mock:!!mock};
   people.push(p);
   sync(); drawHero(); gauge();
@@ -318,6 +396,17 @@ function nameReal(id, name){
     if(ul){ const li = row(p); li.classList.add("new"); ul.appendChild(li); applySearch(); }
   }
   drawHero(); gauge();
+}
+/* 폰이 5개를 다 골랐을 때 — 비율을 세어 장부에. 두 번 와도 처음 것만 */
+function pickReal(id, list){
+  const p = people.find(q => q.id === id);
+  if(!p) return;
+  const ws = Array.isArray(list) ? list.filter(w => DLK.WORDS.some(o => o.w === w)) : [];
+  if(ws.length !== DLK.PICK_N || new Set(ws).size !== ws.length){ sync(); return; }
+  if(p.picks){ sync(); return; }
+  p.picks = ws; p.start = DLK.startFrom(ws); p.at = ++seq;
+  ws.forEach(w => { const k = picks[w] || (picks[w] = {n:0, at:0}); k.n++; if(!k.at) k.at = seq; });
+  bump(p); sync();
 }
 /* 폰이 단어 하나를 모을 때마다 */
 function collectReal(id, nth, w, a){
@@ -399,6 +488,7 @@ Bus.onSay(msg => {
   if(!msg) return;
   if(msg.join) joinReal(msg.join.id);
   if(msg.name) nameReal(msg.name.id, msg.name.name);
+  if(msg.pick) pickReal(msg.pick.id, msg.pick.words);
   if(msg.collect) collectReal(msg.collect.id, msg.collect.nth, msg.collect.w, msg.collect.a);
   if(msg.sentence) sentReal(msg.sentence.id, msg.sentence.nth, msg.sentence.a, msg.sentence.b, msg.sentence.text);
   if(msg.vote) voteReal(msg.vote.id, msg.vote.k, msg.vote.win);
@@ -453,13 +543,13 @@ document.querySelectorAll("#knob button").forEach(b => b.onclick = () => {
 let noted = "";
 function newGame(){
   clearAll();
-  people = []; words = {}; sents = {}; sentences = []; wins = []; duels = {}; ballots = {};
+  people = []; picks = {}; review = null; words = {}; sents = {}; sentences = []; wins = []; duels = {}; ballots = {};
   Object.keys(ack).forEach(k => delete ack[k]);
   Object.keys(heard).forEach(k => delete heard[k]);
   seq = 0; stage = "entry"; press = 0; voteStarted = false;
   noted = "새 판을 열었습니다";
   gen++;
-  Bus.publish({press:0, players:[], words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
+  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
   draw();
 }
 
@@ -467,10 +557,9 @@ function newGame(){
    혼자서 스크린과 진행자 화면을 돌려 보려고 둔 것입니다. 진짜 폰과 같은 길(joinReal ·
    collectReal · sentReal · voteReal)로 들어가므로 셈도 장부도 진짜와 똑같습니다.
    ⛔ 진짜 판에서는 누르지 마세요 — 장부에 가짜 사람이 섞입니다.                    */
-const ANS = {"반대말":["외면","안주","연결","사건","새로운 시도","기계 중심","정체","두려움"],
-             "비슷한 말":["품기","공상","균형","재질","유산","도시의 무늬","손맛","온기"],
-             "색":["보라","남색","흰색","노을색","회색","먹색","연두"],
-             "질감":["까슬까슬하다","매끈하다","울퉁불퉁하다","보들보들하다","서걱거린다","단단하다","말랑하다"]};
+/* 조건이 Opposite 하나로 통일된 뒤(2026.10.07 오후) 흉내 답도 하나의 목록 — 지도 밖 답(ㅋㅋ)도 섞어 둡니다 */
+const ANS = {"Opposite":["외면","안주","연결","사건","새로운 시도","기계 중심","정체","두려움","무관심","고정","파괴",
+                         "침묵","익숙함","바나나","ㅋㅋ","차가움","현실","복종","단절","소음"]};
 const pick = a => a[Math.floor(Math.random()*a.length)];
 let mockN = 0;
 function addMocks(n){
@@ -478,7 +567,11 @@ function addMocks(n){
     later(() => {
       const k = mockN++;
       const p = joinReal("mock" + gen + "_" + k, true);
-      if(p) later(() => nameReal(p.id, nameAt(k)), 400 + Math.random()*1600);
+      if(p) later(() => {
+        nameReal(p.id, nameAt(k));
+        /* 판마다 하나씩 — 진짜 폰과 같은 판(DLK.pickRounds)에서 고릅니다 */
+        later(() => pickReal(p.id, DLK.pickRounds(p.id).map(r => pick(r))), 600 + Math.random()*2000);
+      }, 400 + Math.random()*1600);
     }, i * (120 + Math.random()*200));
   }
 }
@@ -510,7 +603,7 @@ const btns = document.getElementById("btns");
   btns.appendChild(b);
 });
 function gauge(){
-  const label = {entry:"입장", collect:"수집", create:"창작", vote:"투표", result:"결과"}[stage];
+  const label = {entry:"입장", collect:"수집", review:"리뷰", create:"창작", vote:"투표", result:"결과"}[stage];
   document.getElementById("gauge").textContent =
     `판 ${Bus.build}/${Bus.mode()} · ${label} · 접속 ${people.length}명 · 이름 ${people.filter(p=>p.named).length}명`
     + ` · 문장 ${sentences.length}편` + (noted ? ` · ${noted}` : "");
@@ -524,9 +617,10 @@ Bus.onState(b => {
   booted = true;
   if(b.players && b.players.length){
     people = b.players.map(p => ({
-      id:p.id, name:p.name, named:!!p.name, code:p.code, start:p.start || DLK.drawStart(),
+      id:p.id, name:p.name, named:!!p.name, code:p.code, picks:p.picks || null, start:p.start || null,
       got:p.got || [], sent:p.sent || 0, at:p.at || 0, voted:!!p.voted, mock:String(p.id).startsWith("mock")
     }));
+    picks = b.picks || {}; review = b.review || null;
     words = b.words || {}; sents = b.sents || {}; sentences = b.sentences || [];
     wins = b.wins || []; duels = b.duels || {}; gen = b.gen || 0;
     Object.assign(ack, b.ack || {});
@@ -538,7 +632,7 @@ Bus.onState(b => {
     noted = `장부를 이어받음 · ${people.length}명`;
     draw();
   }else{
-    Bus.publish({press:0, players:[], words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
+    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, sents:{}, sentences:[], duels:{}, wins:[], gen, ack:{}});
   }
 });
 draw();

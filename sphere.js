@@ -8,6 +8,8 @@
    판정하지 않습니다 — 숫자도, 맞음·틀림 색도 없습니다.
 
    쓰는 법:  SPHERE.mount(canvas) → SPHERE.poster(단어) → SPHERE.place(내 답) → SPHERE.start() … SPHERE.stop()
+   스크린 리뷰(2026.10.13): SPHERE.marks([{text, hi, label}]) — 답 여럿을 한 구에. hi인 것만 민트 + 이름표, 나머지는 흰 점.
+             SPHERE.measure(단어, 답) — 포스터 단어에서 그 답까지의 거리(0~1). 지도 밖이면 null.
    거리표 sphere-table.js(SPH)와 읽기 규칙 sphere-lookup.js(LOOKUP)가 먼저 실려 있어야 합니다.
    ───────────────────────────────────────────────────────────────────────── */
 window.SPHERE = (() => {
@@ -55,13 +57,13 @@ window.SPHERE = (() => {
           .filter(x => x[0] !== i).sort((x, y) => x[1] - y[1]).slice(0, N_LINK)
           .forEach(([j]) => { if(!links.some(l => (l[0] === i && l[1] === j) || (l[0] === j && l[1] === i))) links.push([i, j]); });
     });
-    const s = { pos, base, sway, nodes: base.map(p => p.slice()), links, coreLinks: nearest([0,0,0], N_LINK), nearest };
+    const s = { pos, base, sway, nodes: base.map(p => p.slice()), links, coreLinks: nearest([0,0,0], N_LINK), nearest, rad: RAD };
     sets.set(word, s); return s;
   }
 
   /* ── 상태 ── */
   let cv = null, cx = null, W = 0, raf = 0, last = 0, ang = 0;
-  let cur = null, mine = null, mineLinks = [];
+  let cur = null, marks = [];            /* marks: [{pos, links, hi, label}] — 수집 화면은 하나(hi), 리뷰 스크린은 여럿 */
 
   function mount(canvas){
     cv = canvas; cx = cv.getContext("2d");
@@ -72,27 +74,41 @@ window.SPHERE = (() => {
     W = cv.clientWidth; cv.width = Math.round(W * dpr); cv.height = Math.round(W * dpr);
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  function poster(word){ cur = setFor(word); mine = null; mineLinks = []; }
+  function poster(word){ cur = setFor(word); marks = []; }
 
-  /* 내 답 — sphere-lookup.js가 기본형으로 읽습니다. 조각이 둘이면 찾은 것들의 자리를 평균.
-     하나도 못 찾으면 지도 밖: 껍질 바깥, 방향만 글자로 정합니다 */
-  function place(text){
+  /* 답 하나를 읽어 자리로 — 조각이 둘이면 찾은 것들의 자리를 평균. 하나도 못 찾으면 지도 밖 */
+  function locate(set, text){
     const parts = LOOKUP.resolve(text, w => IDX.has(w)), hits = parts.filter(x => x.lemma);
     const outside = hits.length === 0, readAs = hits.map(x => x.lemma).join(" · ");
+    let pos, d = null;
     if(outside){
-      const r = rng(hash(text)), d = inBall(r), n = Math.hypot(...d) || 1;
-      mine = d.map(v => v / n * 1.15);
+      const r = rng(hash(text)), v = inBall(r), n = Math.hypot(...v) || 1;
+      pos = v.map(x => x / n * 1.15);
     } else {
-      const ps = hits.map(x => cur.pos(IDX.get(x.lemma)));
-      if(ps.length === 1) mine = ps[0];
+      const ps = hits.map(x => set.pos(IDX.get(x.lemma)));
+      d = hits.reduce((a, x) => a + set.rad[IDX.get(x.lemma)], 0) / hits.length / 255;
+      if(ps.length === 1) pos = ps[0];
       else {
         const m = [0,1,2].map(k => ps.reduce((a, p) => a + p[k], 0) / ps.length);
         const r = ps.reduce((a, p) => a + Math.hypot(...p), 0) / ps.length, n = Math.hypot(...m) || 1;
-        mine = m.map(v => v / n * r);
+        pos = m.map(v => v / n * r);
       }
     }
-    mineLinks = cur.nearest(mine, N_LINK);
-    return { outside, readAs };
+    return { pos, outside, readAs, d };
+  }
+  /* 거리만 — 그리지 않고 잽니다. 리뷰에서 「가장 먼 답」을 고를 때. 지도 밖이면 null(잴 수 없음) */
+  function measure(word, text){ table(); const r = locate(setFor(word), text); return r.outside ? null : r.d; }
+  /* 답 여럿 — [{text, hi, label}] */
+  function marksOf(list){
+    marks = (list || []).map(m => { const r = locate(cur, m.text);
+      return { pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: !!m.hi, label: m.label || "", outside: r.outside }; });
+  }
+
+  /* 내 답 하나 — 수집 화면. sphere-lookup.js가 기본형으로 읽습니다 */
+  function place(text){
+    const r = locate(cur, text);
+    marks = [{ pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: true, label: "", outside: r.outside }];
+    return { outside: r.outside, readAs: r.readAs };
   }
 
   function breathe(t){
@@ -125,7 +141,8 @@ window.SPHERE = (() => {
 
     const items = P.map(p => ({p, kind:"node"}));
     const C = proj([0,0,0]); items.push({p:C, kind:"core"});
-    let M = null; if(mine){ M = proj(mine); items.push({p:M, kind:"mine"}); }
+    const MK = marks.map(m => ({ p: proj(m.pos), m }));
+    MK.forEach(x => items.push({p:x.p, kind: x.m.hi ? "mine" : "ans", m: x.m}));
     items.sort((a, b) => b.p.z - a.p.z);
 
     /* 중심과 내 점 — 각자 이웃 셋과 */
@@ -133,14 +150,23 @@ window.SPHERE = (() => {
     cur.coreLinks.forEach(j => { const b = P[j], f = (1 - b.z) / 2;
       cx.strokeStyle = `rgba(${CORE},${(.25 + .35 * f).toFixed(3)})`;
       cx.beginPath(); cx.moveTo(C.x, C.y); cx.lineTo(b.x, b.y); cx.stroke(); });
-    if(M) mineLinks.forEach(j => { const b = P[j], f = (1 - b.z) / 2;
+    MK.filter(x => x.m.hi).forEach(({p: M, m}) => m.links.forEach(j => { const b = P[j], f = (1 - b.z) / 2;
       cx.strokeStyle = `rgba(${MINE},${(.3 + .4 * f).toFixed(3)})`;
-      cx.beginPath(); cx.moveTo(M.x, M.y); cx.lineTo(b.x, b.y); cx.stroke(); });
+      cx.beginPath(); cx.moveTo(M.x, M.y); cx.lineTo(b.x, b.y); cx.stroke(); }));
 
     const pulse = .85 + .15 * Math.sin(t / 380);
-    items.forEach(({p, kind}) => {
+    const labelPx = Math.max(12, Math.round(W * .04 / 12) * 12);   /* Galmuri11은 12px 단위 */
+    items.forEach(({p, kind, m}) => {
       const f = (1 - p.z) / 2;                       /* 앞일수록 1에 가깝습니다 */
-      if(kind === "node"){
+      if(kind === "ans"){
+        /* 모인 답 — 어휘 점보다 크고 또렷한 흰 네모에 옅은 빛. 판정 없음 */
+        const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12 * p.k);
+        g.addColorStop(0, "rgba(255,255,255,.45)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, 12 * p.k, 0, Math.PI*2); cx.fill();
+        const s = Math.max(5, Math.round(8 * p.k));
+        cx.fillStyle = `rgba(255,255,255,${(.75 + .25 * f).toFixed(3)})`;
+        cx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);
+      } else if(kind === "node"){
         const s = Math.max(1.5, 2.6 * p.k);
         cx.fillStyle = `rgba(255,255,255,${(.35 + .65 * f).toFixed(3)})`;
         cx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);   /* 픽셀처럼 네모 점 */
@@ -154,10 +180,17 @@ window.SPHERE = (() => {
         g.addColorStop(0, `rgba(${MINE},.6)`); g.addColorStop(1, `rgba(${MINE},0)`);
         cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, 16 * p.k, 0, Math.PI*2); cx.fill();
         cx.fillStyle = `rgb(${MINE})`; const s = Math.round(7 * p.k); cx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);
+        if(m && m.label){
+          cx.font = `${labelPx}px Galmuri11, monospace`; cx.textBaseline = "middle";
+          const left = p.x > W * .62;                 /* 오른쪽 끝이면 왼쪽에 적습니다 */
+          cx.textAlign = left ? "right" : "left";
+          cx.fillStyle = `rgb(${MINE})`;
+          cx.fillText(m.label, p.x + (left ? -1 : 1) * (s + 8), p.y);
+        }
       }
     });
   }
   function start(){ fit(); last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }
   function stop(){ cancelAnimationFrame(raf); raf = 0; }
-  return { mount, poster, place, start, stop };
+  return { mount, poster, place, marks: marksOf, measure, start, stop };
 })();

@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   data.js — 단어 30개 · 수집 조건 · 캐릭터 · 셈법 (2026.10.07 초기판 복귀)
+   data.js — 단어 30개 · 수집 조건 · 캐릭터 · 셈법 · 입장 고르기 (2026.10.07 초기판 복귀 · 10.13 고르기)
 
    ⭐ 폰 · 진행자 화면 · 스크린이 **이 파일 한 곳**에서 읽습니다.
       숫자나 대응을 다른 파일에 따로 적으면 서로 어긋납니다.
@@ -12,6 +12,7 @@
              ("조건을 하나로 통일하려고 해" · "오퍼짓 영어 단어를 직접 사용할거야" · "우선 이걸로 하고").
              엑셀은 디알렉티카_포스터단어_출처_261012.xlsx. 조건 넷(반대말·비슷한 말·색·질감)은 폐기
    · 셈법 — 단어 하나 +20 · 문장 하나 OU +10 · 게이지는 100에서 멈춤
+   · 출발 비율 — 입장 때 고른 5개의 캐릭터 수 × 20 (2026.10.13 사용자 확정)
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
   /* 캐릭터 셋 — 기아 공식 국문 표기(OU 설명자료 15쪽) */
@@ -68,15 +69,35 @@
   const OU_STEP = 10;   /* 문장 하나가 OU 게이지를 올리는 양 */
   const FULL = 100;     /* 게이지는 여기서 멈춥니다 */
 
-  /* ── 출발 비율 — 첫 스캔 때 진행자 화면이 뽑습니다 ──
-     셋의 합 100 · 10 단위 · 각각 10~70 (2026.10.07 사용자 "좋아") */
-  const STARTS = [];
-  for (let a = 10; a <= 70; a += 10)
-    for (let b = 10; b <= 70; b += 10) {
-      const c = 100 - a - b;
-      if (c >= 10 && c <= 70) STARTS.push([a, b, c]);
-    }
-  const drawStart = () => STARTS[Math.floor(Math.random() * STARTS.length)].slice();
+  /* ── 입장 때 고르기 → 출발 비율 (2026.10.13 사용자) ──
+     「이름 입력한 다음 30개 중 5개를 고르는 화면은 한 화면에 6개의 단어씩 보여주고 하나를 선택하라고 할거야.
+      선택한 단어에 매핑된 세 가지 캐릭터를 분석해서 상태 비율을 표시해 주는 거고.」
+     · 다섯 판 × 여섯 단어. 30개가 캐릭터별로 10·10·10이라 한 판에 캐릭터마다 둘씩 넣으면 남김없이 나옵니다.
+     · 묶음과 순서는 폰마다 섞되, 같은 폰은 다시 열어도 같은 판(씨앗 = 이 폰의 이름표).
+     · 비율 = 고른 5개의 캐릭터 수 × 20 (사용자 "입장 비율은 동의해"). 한 캐릭터만 다섯이면 100·0·0.
+     ⛔ 예전의 난수 출발 비율(셋의 합 100 · 10 단위 · 각각 10~70)은 폐기 — 되살리지 말 것 */
+  const PICK_N = 5;                     /* 고르는 수 = 판 수 */
+  const PICK_STEP = FULL / PICK_N;      /* 고른 단어 하나가 그 캐릭터 비율에 더하는 양 = 20 */
+  function seeded(seed) {
+    let h = 2166136261;
+    for (const ch of String(seed || "")) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); }
+    let x = (h >>> 0) || 1;
+    return () => (x = (x * 1664525 + 1013904223) >>> 0) / 4294967296;
+  }
+  const shuffled = (arr, r) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function pickRounds(seed) {
+    const r = seeded(seed);
+    const byCh = CHARS.map((_, k) => shuffled(WORDS.filter(x => x.ch === k).map(x => x.w), r));
+    const per = Math.floor(WORDS.length / CHARS.length / PICK_N);     /* 캐릭터마다 한 판에 몇 개 = 2 */
+    return Array.from({ length: PICK_N }, (_, i) =>
+      shuffled(byCh.flatMap(list => list.slice(i * per, (i + 1) * per)), r));
+  }
+  /* 고른 5개 → 세 캐릭터 비율. 모르는 단어는 세지 않습니다 */
+  function startFrom(picks) {
+    const g = CHARS.map(() => 0);
+    (picks || []).forEach(w => { const x = WORDS.find(o => o.w === w); if (x) g[x.ch] += PICK_STEP; });
+    return g;
+  }
 
   /* 내 게이지 — 출발값 + 모은 단어마다 +20, 100에서 멈춤 */
   function gauges(start, words) {
@@ -148,7 +169,7 @@
   const pairKey = (a, b) => [a, b].sort().join("|");
 
   window.DLK = {
-    CHARS, OU, COND, WORDS, STEP, OU_STEP, FULL, STARTS,
-    drawStart, gauges, ouOf, tidy, tidyWord, findWord, sameAsWord, hasBoth, esc, pairKey,
+    CHARS, OU, COND, WORDS, STEP, OU_STEP, FULL, PICK_N, PICK_STEP,
+    pickRounds, startFrom, gauges, ouOf, tidy, tidyWord, findWord, sameAsWord, hasBoth, esc, pairKey,
   };
 })();

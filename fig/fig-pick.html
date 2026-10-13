@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>fig-pick</title>
+<style>
+  body{margin:0; background:#fff; font-family:"Apple SD Gothic Neo",sans-serif; display:flex; gap:24px; padding:24px}
+  .col{display:flex; flex-direction:column; gap:10px; align-items:center}
+  .cap{font-size:15px; color:#333; margin:0}
+  iframe{width:390px; height:844px; border:0; display:block}
+</style></head>
+<body>
+  <!-- 기획서 그림 — 입장 고르기 세 장면: ① 첫 판 ② 하나 고른 직후 ③ 다섯 다 고른 뒤 내 상태. 실제 p1b·p2를 띄우고 장부를 넣어 몰아갑니다 -->
+  <div class="col"><p class="cap">① 1 / 5 — 여섯 중 하나</p><iframe id="f1" src="../p1b-pick.html?me=fig1"></iframe></div>
+  <div class="col"><p class="cap">② 고른 직후 (반전)</p><iframe id="f2" src="../p1b-pick.html?me=fig1"></iframe></div>
+  <div class="col"><p class="cap">③ 다 고른 뒤 — 내 상태</p><iframe id="f3" src="../p2-status.html?me=fig1"></iframe></div>
+<script>
+  const picks = ["응시","도전","사색","포용","상상"];
+  function drive(f, step){
+    const w = f.contentWindow;
+    if(step === 1) w.eval(`picks = []; show();`);
+    if(step === 2) w.eval(`picks = ["응시","도전"]; show(); const b = $("#chips").children[1]; b.classList.add("on"); $("#chips").classList.add("lock"); locked = true;`);
+    if(step === 3) w.eval(`reveal(DLK.startFrom(${JSON.stringify(picks)}), "예시"); PH.clear(); paint(DLK.startFrom(${JSON.stringify(picks)})); $("#guide").textContent="나의 출발점"; $("#goal").style.visibility="visible"; $("#next").style.visibility="visible";`);
+  }
+  [1,2,3].forEach(k => { const f = document.getElementById("f"+k); f.addEventListener("load", () => setTimeout(() => drive(f, k), 400)); });
+</script>
+</body></html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>디알렉티카 — 스크린 · 리뷰</title>
+<link rel="stylesheet" href="font.css?b=261007-1">
+<link rel="stylesheet" href="screen.css?b=261007-1">
+<style>
+  /* ── 한 단어 화면 — 왼쪽 단어·숫자, 가운데 구, 오른쪽 가장 먼 두 사람 ── */
+  .rv{flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1fr auto 1fr; gap:3vw;
+      align-items:center; padding:2vh 0 1vh}
+  .rv .left, .rv .right{display:flex; flex-direction:column; min-width:0}
+  .rv .left{align-items:flex-start; gap:3vh}
+  .rv .right{align-items:flex-start; gap:5vh}
+  #no{font-size:var(--sub); color:var(--line); letter-spacing:.1em; font-variant-numeric:tabular-nums}
+  #w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.1em .35em; word-break:keep-all; line-height:1.2}
+  .k{font-size:var(--rank); color:var(--line); letter-spacing:.06em; line-height:1.6}
+  .k b{font-weight:400; color:var(--name); font-variant-numeric:tabular-nums}
+  #cv{display:block; width:min(66vh, 38vw); height:min(66vh, 38vw)}
+  .far{display:none; flex-direction:column; gap:1.2vh}
+  .far.on{display:flex}
+  .far .nm{font-size:var(--rank); color:#5FE6B0; letter-spacing:.08em}
+  .far .a{font-size:var(--title); line-height:1.25; word-break:keep-all}
+  .far.none .a{color:var(--line)}
+  #empty{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+         font-size:var(--sub); color:var(--line); letter-spacing:.1em}
+  .mid{position:relative}
+  #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
+</style>
+<script src="bus.js?b=261013-1"></script>
+<script src="data.js?b=261013-1"></script>
+<script src="sphere-table.js?b=261012-7"></script>
+<script src="sphere-lookup.js?b=261012-1"></script>
+<script src="sphere.js?b=261013-1"></script>
+<script src="screen.js?b=261007-1"></script>
+</head>
+<body>
+<!-- ─────────────────────────────────────────────────────────────────────
+     스크린 리뷰 타임 (2026.10.13 사용자) — 수집 종료 뒤 · 창작 전. 폰은 대기.
+     「사람들이 가장 많이 선택한 단어 5개를 하나씩 보여주는데 해당 단어에서 가장 거리가 먼 단어를
+      입력한 두 사람을 소개하고 그 사람이 입력한 단어를 함께 보는 걸로 할게.」
+     · 단어 하나 = 포스터 단어 + 고른 사람 수 + 모인 답 수 + 그 단어의 거리 구에 답 전부를 점으로(흰 점)
+       + 가장 먼 답 둘을 민트 점·이름표로, 오른쪽에 이름과 적은 말을 크게.
+     · 어느 단어를 띄울지는 진행자 화면(장부 review.i)이 정합니다. 여기는 보여 주기만.
+     · 판정 없음 — 숫자도 맞음·틀림도 없습니다. 지도 밖 답은 껍질 바깥 흰 점(가장 먼 후보에선 뺌).
+     ───────────────────────────────────────────────────────────────────── -->
+<header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
+<h1 class="stage"><span class="ko">리뷰</span><span class="la">REVIEW</span></h1>
+
+<main class="rv" id="rv" hidden>
+  <div class="left">
+    <p id="no"></p>
+    <p id="w"></p>
+    <p class="k"><b id="nPick"></b>명이 골랐습니다<br>모인 답 <b id="nAns"></b></p>
+  </div>
+  <div class="mid"><canvas id="cv"></canvas><div id="empty">모인 답 없음</div></div>
+  <div class="right">
+    <div class="far" id="f0"><span class="nm"></span><span class="a"></span></div>
+    <div class="far" id="f1"><span class="nm"></span><span class="a"></span></div>
+  </div>
+</main>
+<div id="idle">리뷰를 준비하는 중</div>
+<p id="gauge"></p>
+
+<script>
+const $ = s => document.querySelector(s);
+SC.sizes();
+SPHERE.mount($("#cv"));
+let key = null;
+
+function render(b){
+  const R = b.review;
+  const has = R && R.list && R.list.length;
+  $("#rv").hidden = !has; $("#idle").style.display = has ? "none" : "flex";
+  if(!has){ SPHERE.stop(); key = null; return; }
+  const i = Math.max(0, Math.min(R.list.length - 1, R.i || 0)), r = R.list[i];
+  const k = i + "|" + r.w + "|" + r.ans.length;
+  if(k === key) return;                              /* 같은 단어면 구를 다시 돌리지 않습니다 */
+  key = k;
+  $("#no").textContent = `${i + 1} / ${R.list.length}`;
+  $("#w").textContent = r.w;
+  $("#nPick").textContent = r.n;
+  $("#nAns").textContent = r.ans.length;
+  const far = (r.far || []).map(j => r.ans[j]).filter(Boolean);
+  [0, 1].forEach(j => {
+    const el = $("#f" + j), x = far[j];
+    el.classList.toggle("on", !!x || (j === 0 && !r.ans.length));
+    el.classList.toggle("none", !x);
+    el.querySelector(".nm").textContent = x ? x.name : "";
+    el.querySelector(".a").textContent = x ? x.a : (j === 0 && !r.ans.length ? "모인 답이 없습니다" : "");
+  });
+  $("#empty").style.display = r.ans.length ? "none" : "flex";
+  SPHERE.poster(r.w);
+  SPHERE.marks(r.ans.map((x, j) => ({ text:x.a, hi:(r.far || []).includes(j), label:x.name })));
+  SPHERE.start();
+}
+Bus.onState(render);
+addEventListener("resize", () => { SC.sizes(); key = null; render(Bus.state()); });
+$("#gauge").textContent = `판 ${Bus.build}`;
+</script>
+</body>
+</html>

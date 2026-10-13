@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
+<title>디알렉티카 — 고르기</title>
+<link rel="stylesheet" href="font.css?b=261007-1">
+<link rel="stylesheet" href="phone.css?b=261012-1">
+<style>
+  #step{font-size:18px; color:var(--line); letter-spacing:.12em; font-variant-numeric:tabular-nums}
+  /* 단어 여섯 — 두 줄 세 칸. 칩은 테두리 픽셀 버튼, 누르면 반전 */
+  .chips{width:100%; max-width:340px; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:26px}
+  .chip{font-size:21px; letter-spacing:.02em; line-height:1.25; padding:18px 8px; min-height:82px;
+        background:transparent; color:var(--name); border:2px solid var(--name);
+        word-break:keep-all; display:flex; align-items:center; justify-content:center; text-align:center}
+  .chip.on{background:var(--name); color:var(--bg)}
+  .chips.lock .chip:not(.on){color:var(--line); border-color:var(--line)}
+  /* 고른 것들 — 아래에 작게 쌓입니다 */
+  #done{margin-top:28px; min-height:1.5em; font-size:15px; color:var(--line); letter-spacing:.03em;
+        text-align:center; word-break:keep-all; line-height:1.6}
+</style>
+<script src="bus.js?b=261013-1"></script>
+<script src="data.js?b=261013-1"></script>
+<script src="phone.js?b=261007-1"></script>
+</head>
+<body>
+<!-- ─────────────────────────────────────────────────────────────────────
+     P1b 고르기 — 이름 다음, 내 상태 전 (2026.10.13 사용자)
+     「30개 중 5개를 고르는 화면은 한 화면에 6개의 단어씩 보여주고 하나를 선택하라고 할거야.」
+     · 다섯 판 × 여섯 단어(캐릭터마다 둘씩) — 판은 DLK.pickRounds(내 이름표)가 짭니다. 다시 열어도 같은 판.
+     · 하나를 누르면 바로 다음 판. 되돌리기 없음(조작 최소).
+     · 다섯을 다 고르면 「골랐어요」라고 말하고, 진행자 화면이 비율을 세어 장부에 적으면 P2로.
+     · 고르다 만 사람은 폰 쪽지에 남겨 두었다가 이어서 고릅니다.
+     ───────────────────────────────────────────────────────────────────── -->
+<div class="phone">
+  <div class="head"><span class="ttl">디알렉티카</span></div>
+  <main>
+    <div id="flash"></div>
+    <section class="view on">
+      <div class="mid">
+        <p id="step"></p>
+        <p class="guide" id="guide" style="margin-top:12px"></p>
+        <div class="chips" id="chips"></div>
+        <p id="done"></p>
+        <p class="sub" id="wait"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const ME = Bus.me();
+const ROUNDS = DLK.pickRounds(ME);
+const K = "dlk.picks." + ME;
+let picks = PH.load(K, []).filter(w => DLK.WORDS.some(o => o.w === w)).slice(0, DLK.PICK_N);
+let gone = false, locked = false;
+
+function show(){
+  const i = picks.length;
+  $("#done").textContent = picks.join("  ·  ");
+  if(i >= DLK.PICK_N){ finish(); return; }
+  $("#step").textContent = `${i + 1} / ${DLK.PICK_N}`;
+  $("#guide").textContent = "가장 눈에 들어오는 단어 하나를 고르세요";
+  const box = $("#chips");
+  box.classList.remove("lock");
+  box.innerHTML = ROUNDS[i].map(w => `<button class="chip">${DLK.esc(w)}</button>`).join("");
+  locked = false;
+  [...box.children].forEach((b, k) => b.onclick = () => choose(ROUNDS[i][k], b));
+}
+function choose(w, btn){
+  if(locked) return; locked = true;
+  btn.classList.add("on"); $("#chips").classList.add("lock");
+  picks.push(w); PH.save(K, picks);
+  setTimeout(() => { PH.flash(); setTimeout(show, 80); }, 260);
+}
+function finish(){
+  $("#step").textContent = `${DLK.PICK_N} / ${DLK.PICK_N}`;
+  $("#guide").textContent = "다 골랐어요";
+  $("#chips").innerHTML = "";
+  $("#wait").textContent = "진행자 화면에 연결하는 중";
+  /* ⛔ 장부에 5개가 닿은 것을 보고 나서 넘어갑니다 — 비율은 진행자 화면이 셉니다 */
+  Bus.sayUntil({pick:{id:ME, words:picks}}, b => sameAsMine(Bus.mine(b)));
+}
+const sameAsMine = me => !!(me && me.picks && me.picks.length === DLK.PICK_N && me.picks.every((w, k) => w === picks[k]));
+function goNext(){
+  if(gone) return; gone = true;
+  PH.flash();
+  setTimeout(() => Bus.go("p2-status.html"), 120);
+}
+
+Bus.onState(b => {
+  const me = Bus.mine(b);
+  if(!me || !me.name) return;                       /* 이름부터 — bus.js가 입장 화면에 붙잡아 둡니다 */
+  /* 장부에 이미 5개와 비율이 있으면(새로고침·다시 찍음) 곧장 내 상태로 */
+  if(me.picks && me.picks.length === DLK.PICK_N && me.start){ picks = me.picks.slice(); PH.save(K, picks); goNext(); }
+});
+show();
+</script>
+</body>
+</html>
