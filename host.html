@@ -187,12 +187,12 @@ const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
 /* ── 「다음」 세 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제) ── */
 const PRESSES = [
   {at:"entry",   l1:"수집을 시작합니다", l2:"참가자 전원이 단어 수집 화면으로 넘어갑니다.",
-                 go:"시작", act(){ stage = "collect"; runMockCollect(); }},
+                 go:"다음", act(){ stage = "collect"; runMockCollect(); }},
   {at:"collect", l1:"수집을 종료하고 리뷰를 시작합니다",
                  l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다. 스크린에 많이 고른 단어 5개가 하나씩 뜹니다.",
-                 go:"종료", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
-  {at:"review",  l1:"리뷰를 마치고 결과를 발표합니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
-                 go:"발표", warn:true, act(){ clearAll(); stage = "result"; }},
+                 go:"다음", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
+  {at:"review",  l1:"리뷰를 마치고 결과로 넘어갑니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
+                 go:"다음", warn:true, act(){ clearAll(); stage = "result"; }},
   /* 「종료」는 판을 닫고 새 판을 엽니다 — 플레이 테스트를 이어서 하기 위한 것입니다 */
   {at:"result",  l1:"워크숍을 종료하고 새 판을 엽니다",
                  l2:"이 판의 결과가 지워지고 참가자 폰이 전부 처음 화면으로 돌아갑니다.",
