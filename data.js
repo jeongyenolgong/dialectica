@@ -77,6 +77,9 @@
      · 비율 = 고른 5개의 캐릭터 수 × 20 (사용자 "입장 비율은 동의해"). 한 캐릭터만 다섯이면 100·0·0.
      ⛔ 예전의 난수 출발 비율(셋의 합 100 · 10 단위 · 각각 10~70)은 폐기 — 되살리지 말 것 */
   const PICK_N = 5;                     /* 고르는 수 = 판 수 */
+  /* 짝짓기 — 두 사람이 같이 적은 포스터가 적을수록 잰 거리를 방 평균 쪽으로 당깁니다(2026.10.14).
+   겹침이 PAIR_K장이면 절반쯤 당겨집니다. 🔴값은 흉내 30명으로 돌려 보며 정하는 손잡이 — 사용자 미확정 */
+  const PAIR_K = 3;
   const PICK_STEP = FULL / PICK_N;      /* 고른 단어 하나가 그 캐릭터 비율에 더하는 양 = 20 */
   function seeded(seed) {
     let h = 2166136261;
@@ -169,7 +172,7 @@
   const pairKey = (a, b) => [a, b].sort().join("|");
 
   window.DLK = {
-    CHARS, OU, COND, WORDS, STEP, OU_STEP, FULL, PICK_N, PICK_STEP,
+    CHARS, OU, COND, WORDS, STEP, OU_STEP, FULL, PICK_N, PICK_STEP, PAIR_K,
     pickRounds, startFrom, gauges, ouOf, tidy, tidyWord, findWord, sameAsWord, hasBoth, esc, pairKey,
   };
 })();

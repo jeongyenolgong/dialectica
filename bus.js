@@ -17,28 +17,30 @@
    화면 대응표(8.1)는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "261014-1";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261014-2";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
   const T_BOOK = `dialektika/${ROOM}/book`;
   const T_SAY  = `dialektika/${ROOM}/say`;
 
-  /* SSOT 8.1 표 — 누름 0(아직 안 누름) ~ 4(종료)
-     ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 결과 → 종료 */
+  /* SSOT 8.1 표 — 누름 0(아직 안 누름) ~ 5(종료)
+     ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 짝 → 결과 → 종료 */
   const SCREEN = [
     "screen-01-entry.html",     /* 0 · 입장 중 */
     "screen-02-collect.html",   /* 1 · 수집 시작 */
     "screen-review.html",       /* 2 · 수집 종료 = 리뷰 타임 — 많이 고른 단어 5개를 하나씩 (2026.10.13) */
-    "screen-05-result.html",    /* 3 · 결과 발표 */
-    null,                       /* 4 · 종료 */
+    "screen-pair.html",         /* 3 · 짝 발표 — 답이 가장 먼 두 사람(홀수면 셋)을 한 쌍씩 (2026.10.14) */
+    "screen-05-result.html",    /* 4 · 결과 발표 */
+    null,                       /* 5 · 종료 */
   ];
   const PHONE = [
     null,                          /* 0 · P1→P2→P3를 참가자가 스스로 밟는 중이라 안 건드린다 */
     "p4p5-collect.html",           /* 1 · 단어 입력 ⇄ 조건 답 */
     "p3-wait.html",                /* 2 · 대기 — 리뷰 타임은 스크린만 */
-    "p3-wait.html",                /* 3 · 대기 — 결과도 스크린만 */
-    null,                          /* 4 · 종료 */
+    "p3-wait.html",                /* 3 · 대기 — 짝 발표도 스크린만 */
+    "p3-wait.html",                /* 4 · 대기 — 결과도 스크린만 */
+    null,                          /* 5 · 종료 */
   ];
 
   const here = location.pathname.split("/").pop() || "index.html";

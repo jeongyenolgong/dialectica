@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>디알렉티카 — 스크린 · 짝</title>
+<link rel="stylesheet" href="font.css?b=261007-1">
+<link rel="stylesheet" href="screen.css?b=261007-1">
+<style>
+  [hidden]{display:none !important}
+  /* ── 한 쌍 화면 — 왼쪽 번호·이름들·포스터 단어, 가운데 구(두 사람의 답·이름) ── */
+  .pr{flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1.1fr auto 1.1fr; gap:2.5vw; align-items:center; padding:2vh 0 1vh}
+  .pr .left{display:flex; flex-direction:column; align-items:flex-start; gap:3vh; min-width:0}
+  #no{font-size:var(--sub); color:var(--line); letter-spacing:.1em; font-variant-numeric:tabular-nums}
+  #names{display:flex; flex-direction:column; gap:1.2vh}
+  #names span{font-size:var(--stage); line-height:1.2; word-break:keep-all}
+  .k{font-size:var(--rank); color:var(--line); letter-spacing:.06em; line-height:1.6}
+  #w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.1em .35em; word-break:keep-all; line-height:1.2; display:inline-block}
+  #cv{display:block; width:min(66vh, 38vw); height:min(66vh, 38vw)}
+  #empty{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+         font-size:var(--sub); color:var(--line); letter-spacing:.1em; text-align:center; line-height:1.6}
+  .mid{position:relative}
+  #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
+</style>
+<script src="bus.js?b=261014-2"></script>
+<script src="data.js?b=261014-1"></script>
+<script src="sphere-table.js?b=261012-7"></script>
+<script src="sphere-lookup.js?b=261012-1"></script>
+<script src="sphere.js?b=261013-3"></script>
+<script src="screen.js?b=261007-1"></script>
+</head>
+<body>
+<!-- ─────────────────────────────────────────────────────────────────────
+     스크린 짝 발표 (2026.10.14 사용자) — 리뷰 뒤 · 결과 전. 폰은 대기.
+     「짝을 발표할 때는 두 사람의 입력한 단어의 거리값이 가장 먼 포스터 단어와 함께 구 이미지를 보여주는 거야.」
+     · 한 쌍 = 번호 「N / 전체」 + 짝이 된 사람들의 이름(둘, 홀수면 셋) + 두 답이 가장 멀었던 포스터 단어 하나
+       + 그 단어의 구에 각자의 답을 민트 점으로(답 크게 · 이름 작게). 같은 말이면 점 하나에 이름을 나란히.
+     · 셋이면 가장 먼 두 답의 포스터에 셋째 답도 같은 구에. 셋째가 그 포스터를 안 적었으면 이름만 왼쪽에.
+     · 어느 쌍을 띄울지는 진행자 화면(장부 pair.i)이 정합니다. 한 쌍씩(사용자 "한 쌍식 넘겨야 해"). 여기는 보여 주기만.
+     · 판정 없음 — 거리 숫자는 스크린에 안 보입니다(진행자 화면에만).
+     ───────────────────────────────────────────────────────────────────── -->
+<header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
+
+<main class="pr" id="pr" hidden>
+  <div class="left">
+    <p id="no"></p>
+    <div id="names"></div>
+    <p class="k">가장 멀었던 단어</p>
+    <p id="w"></p>
+  </div>
+  <div class="mid"><canvas id="cv"></canvas><div id="empty"></div></div>
+  <div></div>
+</main>
+<div id="idle">짝을 준비하는 중</div>
+<p id="gauge"></p>
+
+<script>
+const $ = s => document.querySelector(s);
+SC.sizes();
+SPHERE.mount($("#cv"));
+let key = null;
+
+function render(b){
+  const R = b.pair;
+  const has = R && R.list && R.list.length;
+  $("#idle").style.display = has ? "none" : "flex";
+  if(!has){ $("#pr").hidden = true; SPHERE.stop(); key = null; return; }
+  $("#pr").hidden = false;
+  const i = Math.max(0, Math.min(R.list.length - 1, R.i || 0));
+  const t = R.list[i];
+  const k = i + "|" + t.names.join("|") + "|" + (t.w || "");
+  if(k === key) return;                              /* 같은 쌍이면 구를 다시 돌리지 않습니다 */
+  key = k;
+  $("#no").textContent = `${i + 1} / ${R.list.length}`;
+  $("#names").innerHTML = t.names.map(n => `<span>${DLK.esc(n)}</span>`).join("");
+  $("#w").textContent = t.w || "";
+  $("#w").style.display = t.w ? "" : "none";
+  if(!t.w){
+    /* 같이 적은 포스터가 없는 팀 — 구 대신 글로 */
+    SPHERE.stop(); $("#empty").style.display = "flex";
+    $("#empty").textContent = "같이 적은 단어가 없습니다";
+    return;
+  }
+  $("#empty").style.display = "none";
+  SPHERE.poster(t.w);
+  const byWord = {};
+  t.ans.forEach(x => { if(x.a == null) return; (byWord[x.a] || (byWord[x.a] = [])).push(x.name); });
+  SPHERE.marks(Object.entries(byWord).map(([a, names]) => ({ text:a, hi:true, label:a, sub:names.join(" · ") })));
+  SPHERE.start();
+}
+Bus.onState(render);
+addEventListener("resize", () => { SC.sizes(); key = null; render(Bus.state()); });
+$("#gauge").textContent = `판 ${Bus.build}`;
+</script>
+</body>
+</html>

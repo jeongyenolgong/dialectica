@@ -106,8 +106,8 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261013-3"></script>
-<script src="data.js?b=261013-1"></script>
+<script src="bus.js?b=261014-2"></script>
+<script src="data.js?b=261014-1"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
 <script src="sphere.js?b=261013-3"></script>
@@ -180,26 +180,30 @@ let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타�
 let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
 let seq = 0, gen = 0, gid = newGid();
+let pair = null;                 /* 짝 — {list:[{ids,names,w,ans,d}], i, k, m} (2026.10.14) */
 function newGid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 다시 말하기를 그칩니다 */
 
 const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
 
-/* ── 「다음」 세 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제) ── */
+/* ── 「다음」 네 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제 · 2026.10.14 짝 단계 추가) ── */
 const PRESSES = [
   {at:"entry",   l1:"수집을 시작합니다", l2:"참가자 전원이 단어 수집 화면으로 넘어갑니다.",
                  go:"다음", act(){ stage = "collect"; runMockCollect(); }},
   {at:"collect", l1:"수집을 종료하고 리뷰를 시작합니다",
                  l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다. 스크린에 많이 고른 단어 5개가 하나씩 뜹니다.",
                  go:"다음", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
-  {at:"review",  l1:"리뷰를 마치고 결과로 넘어갑니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
+  {at:"review",  l1:"리뷰를 마치고 짝을 발표합니다",
+                 l2:"답이 가장 먼 두 사람끼리 짝이 됩니다(홀수면 한 팀은 셋). 스크린에 한 쌍씩 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
+                 go:"다음", warn:true, act(){ clearAll(); stage = "pair"; buildPairs(); }},
+  {at:"pair",    l1:"짝 발표를 마치고 결과로 넘어갑니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
                  go:"다음", warn:true, act(){ clearAll(); stage = "result"; }},
   /* 「종료」는 판을 닫고 새 판을 엽니다 — 플레이 테스트를 이어서 하기 위한 것입니다 */
   {at:"result",  l1:"워크숍을 종료하고 새 판을 엽니다",
                  l2:"이 판의 결과가 지워지고 참가자 폰이 전부 처음 화면으로 돌아갑니다.",
                  go:"종료", warn:true, act(){ newGame(); }},
 ];
-const ORDER = ["entry","collect","review","result"];
+const ORDER = ["entry","collect","review","pair","result"];
 
 /* 방 평균 — 이름을 낸 사람만 셉니다 */
 function avg(){
@@ -223,7 +227,7 @@ const board = document.getElementById("board");
 const hero  = document.getElementById("hero");
 
 function drawCrumb(){
-  const names = ["입장","수집","리뷰","결과"];
+  const names = ["입장","수집","리뷰","짝","결과"];
   const now = ORDER.indexOf(stage);
   document.getElementById("crumb").innerHTML = names
     .map((n,i) => `<b class="${i === now ? "on" : ""}">${n}</b>`).join("<span>›</span>");
@@ -238,6 +242,8 @@ function drawHero(){
   else if(stage === "review") hero.innerHTML = review && review.list.length ?
       (review.i < 0 ? `<span><span class="k">리뷰</span><span class="n">5</span><span class="k">함께 보기</span></span>`
                     : `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>`) : "";
+  else if(stage === "pair") hero.innerHTML = pair && pair.list.length ?
+      `<span><span class="k">짝</span><span class="n">${pair.i + 1}</span><span class="k">/ ${pair.list.length}</span></span>` : "";
   else hero.innerHTML = "";
 }
 
@@ -246,6 +252,8 @@ function draw(){
     board.innerHTML = `<div class="final">스크린에서 결과를 확인하세요<div class="found" id="found"></div></div>`;
   }else if(stage === "review"){
     drawReview();
+  }else if(stage === "pair"){
+    drawPairs();
   }else{
     board.innerHTML = `<ul id="ul"></ul>`;
     const ul = document.getElementById("ul");
@@ -349,6 +357,83 @@ function setReview(i){
   sync(); drawReview(); drawHero();
 }
 
+/* ══ 짝 — 답이 가장 먼 두 사람끼리 (2026.10.14 사용자) ═══════════════════════
+   사용자 "플레이어들이 입력한 단어들만 가지고 거리를 재면 ... 이걸 30개의 포스터를 반복하면 평균값이 나오지 않아?"
+   · 포스터마다 두 사람의 답 사이 거리(구 위 자리의 거리, 리뷰와 같은 잣대)를 재고, 같이 적은 포스터에 걸쳐 평균.
+   · 사용자 "30명이 30단어를 다 입력하는 경우도 있고 그렇지 않을 수도 있어 이 변수를 계산해야 해."
+     → 같이 적은 포스터 수 n이 적을수록 방 평균 m 쪽으로 당깁니다: (n·d + k·m)/(n+k), k = DLK.PAIR_K.
+       겹침 0이면 정확히 m(중립). 지도 밖 답은 n에서 뺍니다.
+   · 가장 먼 쌍부터 차례로 확정, 홀수면 마지막 한 사람을 **가장 먼 쌍**에 붙여 셋(10.12 놀공 답).
+   · 발표: 사용자 "두 사람의 입력한 단어의 거리값이 가장 먼 포스터 단어와 함께 구 이미지" → 팀마다 그 포스터 하나.
+     셋이면 세 사람 중 가장 먼 두 답의 포스터에 셋째 답도 같은 구에(안 적었으면 이름만). 사용자 "좋아. 진행해보자."
+   · 한 쌍씩 넘깁니다(사용자 "한 쌍식 넘겨야 해").                                                            */
+function buildPairs(){
+  const P = people.filter(p => p.named);
+  const pos = P.map(p => { const m = {};
+    (p.got || []).forEach(x => { let q = null; try { q = SPHERE.position(x.w, x.a); } catch(e) {}
+      if(q) m[x.w] = {q, a:x.a}; });
+    return m; });
+  const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+  /* 쌍마다 — 같이 적은 포스터의 거리들 */
+  const pairs = [];
+  let sum = 0, cnt = 0;
+  for(let i = 0; i < P.length; i++) for(let j = i + 1; j < P.length; j++){
+    const per = [];
+    Object.keys(pos[i]).forEach(w => { if(pos[j][w]){ const d = dist(pos[i][w].q, pos[j][w].q); per.push({w, d}); sum += d; cnt++; } });
+    const n = per.length, d = n ? per.reduce((s, x) => s + x.d, 0) / n : 0;
+    pairs.push({i, j, n, d, per});
+  }
+  const m = cnt ? sum / cnt : 0, k = DLK.PAIR_K;
+  pairs.forEach(x => { x.adj = (x.n * x.d + k * m) / (x.n + k); });
+  pairs.sort((a, b) => b.adj - a.adj || b.n - a.n || a.i - b.i || a.j - b.j);
+  const used = new Set(), teams = [];
+  pairs.forEach(x => { if(used.has(x.i) || used.has(x.j)) return; used.add(x.i); used.add(x.j); teams.push([x.i, x.j]); });
+  const left = P.map((_, i) => i).filter(i => !used.has(i));
+  if(left.length && teams.length) teams[0].push(left[0]);          /* 홀수 — 가장 먼 쌍에 셋째로 */
+  else if(left.length) teams.push([left[0]]);                        /* 혼자인 판 */
+  const byIJ = {}; pairs.forEach(x => { byIJ[x.i + "," + x.j] = x; });
+  const list = teams.map(t => {
+    /* 팀 안의 쌍들 중 포스터 거리가 가장 큰 하나 */
+    let best = null;
+    for(let a = 0; a < t.length; a++) for(let b = a + 1; b < t.length; b++){
+      const x = byIJ[Math.min(t[a], t[b]) + "," + Math.max(t[a], t[b])];
+      (x ? x.per : []).forEach(y => { if(!best || y.d > best.d) best = {w:y.w, d:y.d}; });
+    }
+    const w = best ? best.w : null;
+    const ans = t.map(i => ({ name:P[i].name, a: w && pos[i][w] ? pos[i][w].a : ((P[i].got || []).find(x => x.w === w) || {}).a || null }));
+    const x2 = t.length >= 2 ? byIJ[Math.min(t[0], t[1]) + "," + Math.max(t[0], t[1])] : null;
+    return { ids:t.map(i => P[i].id), names:t.map(i => P[i].name), w, d: best ? best.d : null, ans,
+             n: x2 ? x2.n : 0, adj: x2 ? x2.adj : null };
+  });
+  pair = {list, i:0, k, m};
+  sync();
+}
+function drawPairs(){
+  if(!pair || !pair.list.length){
+    board.innerHTML = `<div class="review"><p class="note">짝을 지을 사람이 없습니다.</p></div>`;
+    return;
+  }
+  const f = v => v == null ? "–" : v.toFixed(2);
+  const rows = pair.list.map((t, k) =>
+    `<div class="rw ${k === pair.i ? "on" : ""}" data-k="${k}">`
+      + `<span class="k">${k + 1}</span><span class="w">${t.names.map(DLK.esc).join(" · ")}</span>`
+      + `<span class="k">${t.w ? DLK.esc(t.w) : "같이 적은 단어 없음"}</span>`
+      + `<span class="far">${t.ans.map(x => `<span><b>${DLK.esc(x.name)}</b> ${x.a == null ? "(안 적음)" : DLK.esc(x.a)}</span>`).join("")}`
+      + `<span>겹침 ${t.n}장 · 거리 ${f(t.adj)}</span></span></div>`).join("");
+  board.innerHTML = `<div class="review">${rows}<div class="nav">`
+    + `<button id="prPrev" ${pair.i <= 0 ? "disabled" : ""}>이전 짝</button>`
+    + `<button id="prNext" ${pair.i >= pair.list.length - 1 ? "disabled" : ""}>다음 짝</button></div>`
+    + `<p class="note">스크린에 지금 짝이 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다. 방 평균 거리 ${f(pair.m)} · 당김 ${pair.k}장</p></div>`;
+  board.querySelectorAll(".rw").forEach(el => el.onclick = () => setPair(+el.dataset.k));
+  document.getElementById("prPrev").onclick = () => setPair(pair.i - 1);
+  document.getElementById("prNext").onclick = () => setPair(pair.i + 1);
+}
+function setPair(i){
+  if(!pair) return;
+  pair.i = Math.max(0, Math.min(pair.list.length - 1, i));
+  sync(); drawPairs(); drawHero();
+}
+
 /* ══ 장부 ═══════════════════════════════════════════════════════════════ */
 function sync(){
   Bus.publish({
@@ -356,7 +441,7 @@ function sync(){
       id:p.id, name:p.named ? p.name : "", code:p.code, picks:p.picks, start:p.start,
       got:p.got, cnt:p.got.length, g:gOf(p), at:p.at || 0
     })),
-    picks, review, words, gen, gid, ack
+    picks, review, pair, words, gen, gid, ack
   });
 }
 function remember(id, kind, n){
@@ -467,12 +552,12 @@ function applySearch(){
 let noted = "";
 function newGame(){
   clearAll();
-  people = []; picks = {}; review = null; words = {};
+  people = []; picks = {}; review = null; pair = null; words = {};
   Object.keys(ack).forEach(k => delete ack[k]);
   seq = 0; stage = "entry"; press = 0;
   noted = "새 판을 열었습니다";
   gen++; gid = newGid();
-  Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, gid, ack:{}});
+  Bus.publish({press:0, players:[], picks:{}, review:null, pair:null, words:{}, gen, gid, ack:{}});
   draw();
 }
 
@@ -514,7 +599,7 @@ const btns = document.getElementById("btns");
   btns.appendChild(b);
 });
 function gauge(){
-  const label = {entry:"입장", collect:"수집", review:"리뷰", result:"결과"}[stage];
+  const label = {entry:"입장", collect:"수집", review:"리뷰", pair:"짝", result:"결과"}[stage];
   document.getElementById("gauge").textContent =
     `판 ${Bus.build}/${Bus.mode()} · ${label} · 접속 ${people.length}명 · 이름 ${people.filter(p=>p.named).length}명`
     + (noted ? ` · ${noted}` : "");
@@ -531,7 +616,7 @@ Bus.onState(b => {
       id:p.id, name:p.name, named:!!p.name, code:p.code, picks:p.picks || null, start:p.start || null,
       got:p.got || [], at:p.at || 0, mock:String(p.id).startsWith("mock")
     }));
-    picks = b.picks || {}; review = b.review || null;
+    picks = b.picks || {}; review = b.review || null; pair = b.pair || null;
     words = b.words || {}; gen = b.gen || 0; gid = b.gid || gid;
     Object.assign(ack, b.ack || {});
     seq = Math.max(0, ...people.map(p => p.at || 0));
@@ -540,7 +625,7 @@ Bus.onState(b => {
     noted = `장부를 이어받음 · ${people.length}명`;
     draw();
   }else{
-    Bus.publish({press:0, players:[], picks:{}, review:null, words:{}, gen, gid, ack:{}});
+    Bus.publish({press:0, players:[], picks:{}, review:null, pair:null, words:{}, gen, gid, ack:{}});
   }
 });
 draw();
