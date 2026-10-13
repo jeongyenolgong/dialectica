@@ -277,7 +277,9 @@ function bump(p){
 /* ══ 리뷰 타임 (2026.10.13 사용자) ═══════════════════════════════════════
    「사람들이 가장 많이 선택한 단어 5개를 하나씩 보여주는데 해당 단어에서 가장 거리가 먼 단어를
     입력한 두 사람을 소개하고 그 사람이 입력한 단어를 함께 보는 걸로 할게.」
-   · 순서 — 입장 때 고른 수가 많은 단어부터. 같으면 먼저 고른 단어.
+   · 순서 — 입장 때 고른 수가 많은 단어 5개가 먼저(첫 장 목록도 이 5개). 같으면 먼저 고른 단어.
+     ⭐그 뒤에 나머지 단어도 같은 화면으로 이어집니다(2026.10.13 사용자 "나머지 단어들도 똑같이 보여주면 좋겠어") —
+       답이 하나라도 모인 단어만, 고른 수 → 모인 답 수 → 포스터 순. 고른 사람도 답도 없는 단어는 보여 줄 것이 없어 뺍니다.
    · 가장 먼 둘 — ⭐답과 답 사이의 거리입니다(2026.10.13 사용자 "입력한 단어들 간의 거리가 가장 먼 사람을 골라 보여주는 거야.
      이게 내가 생각하는 원칙이야"). 포스터 단어의 구 안에서 답마다 자리(SPHERE.position)를 받아, 서로 가장 멀리 떨어진 한 쌍을 고릅니다.
      ⛔포스터 단어에서 먼 순으로 두 명을 고르던 첫 판은 폐기 — 같은 말을 쓴 둘이 「가장 먼 두 사람」으로 뽑혔습니다.
@@ -290,7 +292,11 @@ function bump(p){
 function buildReview(){
   const top = Object.entries(picks).filter(([,v]) => v.n > 0)
     .sort((a,b) => b[1].n - a[1].n || a[1].at - b[1].at).slice(0, 5).map(([w, v]) => ({w, n:v.n}));
-  const list = top.map(({w, n}) => {
+  const rest = DLK.WORDS.map((x, i) => ({w:x.w, n:(picks[x.w] || {}).n || 0, at:(picks[x.w] || {}).at || 0, c:(words[x.w] || {}).n || 0, i}))
+    .filter(x => !top.some(t => t.w === x.w) && x.c > 0)
+    .sort((a, b) => b.n - a.n || (a.n && b.n ? a.at - b.at : 0) || b.c - a.c || a.i - b.i)
+    .map(({w, n}) => ({w, n}));
+  const list = [...top, ...rest].map(({w, n}) => {
     const ans = [], pos = [];
     people.filter(p => p.named).forEach(p => (p.got || []).forEach(x => {
       if(x.w !== w) return;
@@ -310,7 +316,7 @@ function buildReview(){
     const far = ans.map((x, k) => k).filter(k => pos[k] && words.has(ans[k].a));   /* 같은 말을 쓴 사람은 같은 점에 함께 */
     return {w, n, ans, far};
   });
-  review = {list, i:-1};          /* 먼저 5개를 함께 본 뒤 하나씩 (2026.10.13 사용자 "응 그렇게 해줘") */
+  review = {list, top:top.length, i:-1};   /* 먼저 5개를 함께 본 뒤 하나씩 (2026.10.13 사용자 "응 그렇게 해줘"). top = 첫 장에 올리는 수 */
   sync();
 }
 function drawReview(){
@@ -326,7 +332,7 @@ function drawReview(){
       + `<span class="far">${far || `<span>모인 답 없음</span>`}</span></div>`;
   }).join("");
   const over = `<div class="rw ${review.i < 0 ? "on" : ""}" data-k="-1"><span class="k"></span><span class="w">함께 보기</span>`
-    + `<span class="k">단어 5개 목록</span><span class="far"><span>스크린에 많이 고른 단어 5개가 한 화면에</span></span></div>`;
+    + `<span class="k">단어 ${review.top || 5}개 목록</span><span class="far"><span>스크린에 많이 고른 단어 ${review.top || 5}개가 한 화면에 · 그 뒤 ${review.list.length - (review.top || 5)}개 이어서</span></span></div>`;
   board.innerHTML = `<div class="review">${over}${rows}<div class="nav">`
     + `<button id="rvPrev" ${review.i < 0 ? "disabled" : ""}>이전 단어</button>`
     + `<button id="rvNext" ${review.i >= review.list.length - 1 ? "disabled" : ""}>다음 단어</button></div>`
