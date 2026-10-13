@@ -10,6 +10,7 @@
    쓰는 법:  SPHERE.mount(canvas) → SPHERE.poster(단어) → SPHERE.place(내 답) → SPHERE.start() … SPHERE.stop()
    스크린 리뷰(2026.10.13): SPHERE.marks([{text, hi, label, sub}]) — 답 여럿을 한 구에. hi인 것만 민트 + 이름표(label 위, sub 아래 작게), 나머지는 흰 점.
              SPHERE.measure(단어, 답) — 포스터 단어에서 그 답까지의 거리(0~1). 지도 밖이면 null.
+             SPHERE.position(단어, 답) — 그 포스터 단어의 구 안에서 답의 자리 [x,y,z]. 지도 밖이면 null. 답끼리의 거리는 이 자리 사이로 잽니다(2026.10.13).
    거리표 sphere-table.js(SPH)와 읽기 규칙 sphere-lookup.js(LOOKUP)가 먼저 실려 있어야 합니다.
    ───────────────────────────────────────────────────────────────────────── */
 window.SPHERE = (() => {
@@ -98,6 +99,8 @@ window.SPHERE = (() => {
   }
   /* 거리만 — 그리지 않고 잽니다. 리뷰에서 「가장 먼 답」을 고를 때. 지도 밖이면 null(잴 수 없음) */
   function measure(word, text){ table(); const r = locate(setFor(word), text); return r.outside ? null : r.d; }
+  /* 자리만 — 답과 답 사이의 거리를 잴 때(리뷰 「입력한 단어들 간의 거리가 가장 먼」 한 쌍). 지도 밖이면 null */
+  function position(word, text){ table(); const r = locate(setFor(word), text); return r.outside ? null : r.pos; }
   /* 답 여럿 — [{text, hi, label}] */
   function marksOf(list){
     marks = (list || []).map(m => { const r = locate(cur, m.text);
@@ -199,5 +202,5 @@ window.SPHERE = (() => {
   }
   function start(){ fit(); last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }
   function stop(){ cancelAnimationFrame(raf); raf = 0; }
-  return { mount, poster, place, marks: marksOf, measure, start, stop };
+  return { mount, poster, place, marks: marksOf, measure, position, start, stop };
 })();

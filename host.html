@@ -106,11 +106,11 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261013-2"></script>
+<script src="bus.js?b=261013-3"></script>
 <script src="data.js?b=261013-1"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
-<script src="sphere.js?b=261013-2"></script>
+<script src="sphere.js?b=261013-3"></script>
 </head>
 <body>
 
@@ -278,23 +278,36 @@ function bump(p){
    「사람들이 가장 많이 선택한 단어 5개를 하나씩 보여주는데 해당 단어에서 가장 거리가 먼 단어를
     입력한 두 사람을 소개하고 그 사람이 입력한 단어를 함께 보는 걸로 할게.」
    · 순서 — 입장 때 고른 수가 많은 단어부터. 같으면 먼저 고른 단어.
-   · 가장 먼 둘 — 거리표(SPHERE.measure)로 잽니다. 같으면 먼저 들어온 사람.
-   · 지도 밖 답(어휘 5만에 없는 말)은 거리를 잴 수 없어 후보에서 뺍니다 — 오타·장난이 먼저 뽑히는 것을 막습니다
+   · 가장 먼 둘 — ⭐답과 답 사이의 거리입니다(2026.10.13 사용자 "입력한 단어들 간의 거리가 가장 먼 사람을 골라 보여주는 거야.
+     이게 내가 생각하는 원칙이야"). 포스터 단어의 구 안에서 답마다 자리(SPHERE.position)를 받아, 서로 가장 멀리 떨어진 한 쌍을 고릅니다.
+     ⛔포스터 단어에서 먼 순으로 두 명을 고르던 첫 판은 폐기 — 같은 말을 쓴 둘이 「가장 먼 두 사람」으로 뽑혔습니다.
+     같은 말은 같은 자리이므로, 고른 쌍과 같은 말을 쓴 사람은 전부 그 점에 함께 섭니다(far에 다 들어감).
+     거리가 같으면 먼저 들어온 쌍. 답이 전부 같은 말이면 점 하나.
+   · 지도 밖 답(어휘 5만에 없는 말)은 자리를 잴 수 없어 후보에서 뺍니다 — 오타·장난이 먼저 뽑히는 것을 막습니다
      (사용자 "오타와 장난 때문이라면 너의 판단에 따를게"). 점은 껍질 바깥에 그대로 찍힙니다.
-   · 답이 하나뿐이면 한 사람만, 없으면 「모인 답 없음」 — 설계가 아니라 빈 화면을 막는 대비.
+   · 잴 수 있는 답이 하나뿐이면 한 사람만, 없으면 「모인 답 없음」 — 설계가 아니라 빈 화면을 막는 대비.
    · 첫 장은 5개를 함께 보는 목록(i = -1), 「다음 단어」로 1번부터 하나씩 (2026.10.13 사용자).           */
 function buildReview(){
   const top = Object.entries(picks).filter(([,v]) => v.n > 0)
     .sort((a,b) => b[1].n - a[1].n || a[1].at - b[1].at).slice(0, 5).map(([w, v]) => ({w, n:v.n}));
   const list = top.map(({w, n}) => {
-    const ans = [];
+    const ans = [], pos = [];
     people.filter(p => p.named).forEach(p => (p.got || []).forEach(x => {
       if(x.w !== w) return;
-      let d = null; try { d = SPHERE.measure(w, x.a); } catch(e) { d = null; }
-      ans.push({name:p.name, a:x.a, d});
+      let d = null, q = null; try { d = SPHERE.measure(w, x.a); q = SPHERE.position(w, x.a); } catch(e) { d = null; q = null; }
+      ans.push({name:p.name, a:x.a, d}); pos.push(q);
     }));
-    const far = ans.map((x, k) => [k, x.d]).filter(x => x[1] != null)
-      .sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
+    /* 답끼리 가장 먼 한 쌍 — 지도 안의 답만. 거리가 같으면 먼저 들어온 쌍 */
+    const inMap = ans.map((_, k) => k).filter(k => pos[k]);
+    let best = null, bd = -1;
+    for(let i = 0; i < inMap.length; i++) for(let j = i + 1; j < inMap.length; j++){
+      const a = pos[inMap[i]], b = pos[inMap[j]];
+      const dd = (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+      if(dd > bd + 1e-12){ bd = dd; best = [inMap[i], inMap[j]]; }
+    }
+    const seed = best && bd > 1e-12 ? best : inMap.slice(0, 1);          /* 쌍이 없거나 전부 같은 말이면 점 하나 */
+    const words = new Set(seed.map(k => ans[k].a));
+    const far = ans.map((x, k) => k).filter(k => pos[k] && words.has(ans[k].a));   /* 같은 말을 쓴 사람은 같은 점에 함께 */
     return {w, n, ans, far};
   });
   review = {list, i:-1};          /* 먼저 5개를 함께 본 뒤 하나씩 (2026.10.13 사용자 "응 그렇게 해줘") */
