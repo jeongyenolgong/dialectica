@@ -37,8 +37,9 @@
   #ov .r .n{font-size:var(--rank); color:var(--line); text-align:right; font-variant-numeric:tabular-nums}
   #ov .r .n b{font-weight:400; color:var(--name)}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
 <script src="sphere.js?b=261013-3"></script>
@@ -61,19 +62,19 @@
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
 
-<section id="ov" hidden><h2>많이 고른 단어</h2></section>
+<section id="ov" hidden></section>
 <main class="rv" id="rv" hidden>
   <div class="left">
     <p id="no"></p>
     <p id="w"></p>
-    <p class="k"><b id="nPick"></b>명이 골랐습니다<br>모인 답 <b id="nAns"></b></p>
+    <p class="k"><b id="nPick"></b><span data-t="s.review.picked_suffix"></span><br><span data-t="s.review.answers_label"></span> <b id="nAns"></b></p>
   </div>
-  <div class="mid"><canvas id="cv"></canvas><div id="empty">모인 답 없음</div></div>
+  <div class="mid"><canvas id="cv"></canvas><div id="empty" data-t="s.review.no_answers"></div></div>
   <div class="right">
     <div class="rest" id="rest"></div>
   </div>
 </main>
-<div id="idle">리뷰를 준비하는 중</div>
+<div id="idle" data-t="s.review.idle"></div>
 <p id="gauge"></p>
 
 <script>
@@ -91,8 +92,8 @@ function render(b){
   /* 첫 장 — 5개 함께 */
   if(i < 0){
     $("#rv").hidden = true; $("#ov").hidden = false; SPHERE.stop(); key = null;
-    $("#ov").innerHTML = `<h2>많이 고른 단어</h2>` + R.list.slice(0, R.top || 5).map((r, k) =>
-      `<div class="r"><span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span><span class="n"><b>${r.n}</b>명</span></div>`).join("");
+    $("#ov").innerHTML = `<h2>${DLK.T("s.review.top")}</h2>` + R.list.slice(0, R.top || 5).map((r, k) =>
+      `<div class="r"><span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span><span class="n">${DLK.T("s.review.n_people", {n:`<b>${r.n}</b>`})}</span></div>`).join("");
     return;
   }
   $("#ov").hidden = true; $("#rv").hidden = false;

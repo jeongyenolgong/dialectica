@@ -77,24 +77,22 @@
     fromBook.forEach(p => { byW[p.w] = p; });
     const words = Object.values(byW).sort((a, c) => (a.n || 0) - (c.n || 0));
     const start = (me && me.start) || null;
-    const sentN = Math.max((me && me.sent) || 0, load("dlk.sents." + id, []).length);
     return {
       me, start, words,
       g: start ? D.gauges(start, words.map(p => p.w)) : null,
-      ou: D.ouOf(sentN), sentN,
     };
   }
 
   /* ── 게이지 줄 ──────────────────────────────────────────────────── */
-  function strip(el, withOU) {
-    const rows = [...D.CHARS, ...(withOU ? [D.OU] : [])];
+  function strip(el) {
+    const rows = D.CHARS;
     el.innerHTML = rows.map((c, i) =>
       `<div class="g" data-i="${i}" style="--gc:${c.color}">`
       + `<span class="nm">${c.short}</span>`
       + `<span class="bar">${"<i></i>".repeat(10)}</span>`
       + `<span class="v"></span></div>`).join("");
-    const set = (g, ou) => {
-      const vals = [...(g || [null, null, null]), ...(withOU ? [ou] : [])];
+    const set = g => {
+      const vals = g || [null, null, null];
       [...el.children].forEach((row, i) => {
         const v = vals[i];
         row.querySelector(".v").textContent = v == null ? "" : v;

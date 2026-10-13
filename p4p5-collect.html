@@ -27,8 +27,9 @@
   #okS{margin-top:16px}
   .done-note{font-size:18px; color:var(--line); margin-top:24px; text-align:center}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261007-1"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
@@ -47,7 +48,7 @@
 <div class="phone">
   <div class="head">
     <span class="ttl" id="htitle">디알렉티카</span>
-    <span class="side"><button class="hbtn" id="drawerBtn">서랍</button></span>
+    <span class="side"><button class="hbtn" id="drawerBtn" data-t="collect.drawer"></button></span>
   </div>
   <div class="strip" id="strip"></div>
   <main>
@@ -64,8 +65,8 @@
                  spellcheck="false" enterkeyhint="done">
         </label>
         <p class="msg" id="mW"></p>
-        <button class="btn" id="okW">확인</button>
-        <p class="done-note" id="allDone" hidden>30개를 모두 모았습니다</p>
+        <button class="btn" id="okW" data-t="common.ok"></button>
+        <p class="done-note" id="allDone" hidden></p>
       </div>
     </section>
 
@@ -81,8 +82,8 @@
         </label>
         <p class="msg" id="mC"></p>
         <div class="row2">
-          <button class="btn dim" id="backC">뒤로</button>
-          <button class="btn" id="okC">수집</button>
+          <button class="btn dim" id="backC" data-t="collect.back"></button>
+          <button class="btn" id="okC" data-t="collect.collect"></button>
         </div>
       </div>
     </section>
@@ -97,7 +98,7 @@
         <p id="gainN"></p>
         <p id="gainC"></p>
         <p class="sub" id="gainNote"></p>
-        <button class="btn" id="okS">확인</button>
+        <button class="btn" id="okS" data-t="common.ok"></button>
       </div>
     </section>
 
@@ -110,7 +111,8 @@
 const $ = s => document.querySelector(s);
 const ME = Bus.me();
 let book = Bus.state(), cur = null, back = "vW", allDone = false;
-let gs = PH.strip($("#strip"), false);
+$("#allDone").textContent = DLK.T("collect.all_done", {n:DLK.WORDS.length});
+let gs = PH.strip($("#strip"));
 
 /* 폰 쪽지 — 내가 모은 단어 {w, a, n}. 장부(진행자 화면)에도 똑같이 적힙니다 */
 const st = () => PH.state(book);
@@ -118,13 +120,13 @@ const st = () => PH.state(book);
 function show(id){
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id === id));
   const inDrawer = id === "vD";
-  $("#htitle").textContent = inDrawer ? "서랍" : "디알렉티카";
-  $("#drawerBtn").textContent = inDrawer ? "닫기" : "서랍";
+  $("#htitle").textContent = inDrawer ? DLK.T("collect.drawer") : "디알렉티카";
+  $("#drawerBtn").textContent = inDrawer ? DLK.T("collect.close") : DLK.T("collect.drawer");
 }
 function paint(){
   const s = st();
-  gs.set(s.g, null);
-  $("#prog").textContent = `모은 단어 ${s.words.length} / ${DLK.WORDS.length}`;
+  gs.set(s.g);
+  $("#prog").textContent = DLK.T("collect.progress", {n:s.words.length, total:DLK.WORDS.length});
   allDone = s.words.length >= DLK.WORDS.length;
   $("#allDone").hidden = !allDone;
   $("#fW").hidden = allDone; $("#okW").hidden = allDone; $("#gW").hidden = allDone;
@@ -136,7 +138,7 @@ function toWord(quick){
   show("vW"); back = "vW";
   $("#inW").value = ""; $("#mW").textContent = "";
   paint();
-  const t = "포스터에서 찾은 단어를 입력하세요";
+  const t = DLK.T("collect.word_prompt");
   if(quick) $("#gW").textContent = t; else PH.typeOut($("#gW"), t, 50);
 }
 function sayW(t){ $("#mW").textContent = t; PH.later(1800, () => { if($("#mW").textContent === t) $("#mW").textContent = ""; }); }
@@ -145,8 +147,8 @@ $("#okW").onclick = () => PH.commit($("#inW"), raw => {
   if(!DLK.tidy(raw)) return;
   const hit = DLK.findWord(raw);
   /* ⭐ 틀려도 잃는 것이 없습니다 — 오답과 오타를 가르지 않고, 횟수 제한도 없습니다 */
-  if(!hit){ sayW("다시 보세요"); PH.shake($("#fW")); return; }
-  if(st().words.some(p => p.w === hit.w)){ sayW("이미 모은 단어예요"); PH.blink($("#drawerBtn")); return; }
+  if(!hit){ sayW(DLK.T("collect.no_match")); PH.shake($("#fW")); return; }
+  if(st().words.some(p => p.w === hit.w)){ sayW(DLK.T("collect.already")); PH.blink($("#drawerBtn")); return; }
   cur = hit;
   $("#fW").style.background = "var(--name)";          /* 맞음 — 칸이 흰색으로 물듭니다 */
   setTimeout(() => { $("#fW").style.background = ""; toCond(); }, 180);
@@ -167,8 +169,8 @@ $("#backC").onclick = () => { $("#inC").blur(); toWord(true); };
 
 $("#okC").onclick = () => PH.commit($("#inC"), raw => {
   const a = DLK.tidy(raw);
-  if(!a){ sayC("답을 입력하세요"); PH.shake($("#fC")); return; }
-  if(DLK.sameAsWord(a, cur.w)){ sayC("다시 써 보세요"); PH.shake($("#fC")); return; }
+  if(!a){ sayC(DLK.T("collect.answer_empty")); PH.shake($("#fC")); return; }
+  if(DLK.sameAsWord(a, cur.w)){ sayC(DLK.T("collect.same_as_word")); PH.shake($("#fC")); return; }
   collect(cur, a);
 });
 
@@ -195,13 +197,13 @@ function collect(x, a){
   $("#vS").style.setProperty("--gc", C.color);
   $("#sWord").innerHTML = `<span class="je">${DLK.esc(x.w)}</span>`;
   $("#sMine").textContent = a;
-  $("#sOut").textContent = r.outside ? "아직 지도에 없는 말" : "";
+  $("#sOut").textContent = r.outside ? DLK.T("collect.outside") : "";
   const full = before != null && before >= DLK.FULL;
   $("#gainN").textContent = full ? "FULL" : `+${DLK.STEP}`;
   $("#gainC").textContent = C.ko;
-  $("#gainNote").textContent = full ? "이 게이지는 이미 가득 찼어요" : (after >= DLK.FULL ? "가득 찼습니다!" : "");
+  $("#gainNote").textContent = full ? DLK.T("collect.gauge_full_already") : (after >= DLK.FULL ? DLK.T("collect.gauge_full_now") : "");
   PH.flash();
-  gs.set(s1.g, null); gs.pulse(x.ch);
+  gs.set(s1.g); gs.pulse(x.ch);
   PH.blink($("#drawerBtn"));
   SPHERE.start();
 }
@@ -212,7 +214,7 @@ function openDrawer(){
   $("#inW").blur(); $("#inC").blur(); SPHERE.stop();
   const list = $("#list");
   const ws = st().words;
-  list.innerHTML = ws.length ? "" : `<p class="empty">아직 모은 단어가 없습니다</p>`;
+  list.innerHTML = ws.length ? "" : `<p class="empty">${DLK.T("collect.empty_list")}</p>`;
   ws.slice().reverse().forEach((p, k) => {
     const x = DLK.WORDS.find(o => o.w === p.w) || {c:"", ch:0};
     const r = document.createElement("div");
@@ -235,7 +237,7 @@ $("#inW").addEventListener("keydown", e => { if(e.key === "Enter" && !e.isCompos
 $("#inC").addEventListener("keydown", e => { if(e.key === "Enter" && !e.isComposing) $("#okC").click(); });
 
 /* ── 순위 알림 (6.12) — 1분마다 1·2·3위에게 「현재 N위」 ── */
-Bus.watchRank("cnt", a => PH.toast(`현재 ${a.no}위`));
+Bus.watchRank("cnt", a => PH.toast(DLK.T("collect.rank_toast", {n:a.no})));
 
 Bus.onState(b => {
   book = b;

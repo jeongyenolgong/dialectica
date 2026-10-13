@@ -19,8 +19,9 @@
   #who{font-size:20px; color:var(--line); min-height:1.4em}
   #next{visibility:hidden; margin-top:34px}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261007-1"></script>
 </head>
 <body>
@@ -39,7 +40,7 @@
         <p id="who"></p>
         <p class="guide" id="guide" style="margin-top:10px"></p>
         <div class="big" id="big"></div>
-        <button class="btn" id="next">다음</button>
+        <button class="btn" id="next" data-t="common.next"></button>
       </div>
     </section>
   </main>
@@ -66,16 +67,16 @@ function paint(vals){
 const READ_MS = 2600, DOT_MS = 400;
 function reveal(start, name){
   if(shown) return; shown = true;
-  $("#who").textContent = name ? `${name} 님` : "";
+  $("#who").textContent = name ? DLK.T("p2.who", {name}) : "";
   const g = $("#guide");
-  g.textContent = "당신을 읽는 중";
-  for(let n = 1; n * DOT_MS < READ_MS; n++) PH.later(n*DOT_MS, () => g.textContent = "당신을 읽는 중" + "·".repeat((n - 1) % 3 + 1));
+  g.textContent = DLK.T("p2.reading");
+  for(let n = 1; n * DOT_MS < READ_MS; n++) PH.later(n*DOT_MS, () => g.textContent = DLK.T("p2.reading") + "·".repeat((n - 1) % 3 + 1));
   const A = READ_MS;
   for(let k = 1; k <= 7; k++)
     PH.later(A + k*120, () => paint(start.map(v => Math.min(v, k*10))));
   PH.later(A + 7*120 + 100, () => {
     paint(start);
-    g.textContent = "나의 출발점";
+    g.textContent = DLK.T("p2.start");
   });
   PH.later(A + 7*120 + 500, () => { $("#next").style.visibility = "visible"; });
 }
@@ -85,7 +86,7 @@ $("#next").onclick = () => Bus.go("p3-wait.html");
 /* 비율이 오기 전 — 「당신을 읽는 중」만 보입니다. 「연결하는 중」 같은 말은 참가자에게 보이지 않습니다(2026.10.13 사용자).
    진행자 화면이 고르기 말을 못 들었으면 폰 쪽지의 5개로 닿을 때까지 다시 말합니다 */
 let asked = false;
-$("#guide").textContent = "당신을 읽는 중";
+$("#guide").textContent = DLK.T("p2.reading");
 Bus.onState(b => {
   const me = Bus.mine(b);
   if(!me) return;

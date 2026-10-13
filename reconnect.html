@@ -23,8 +23,9 @@
   #welcome{font-size:24px; min-height:1.4em; margin-top:24px; text-align:center}
   #nextBtn{visibility:hidden}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261007-1"></script>
 </head>
 <body>
@@ -46,7 +47,7 @@
         <p class="msg" id="msg"></p>
         <div class="pad" id="pad"></div>
         <p id="welcome"></p>
-        <button class="btn" id="nextBtn">다음</button>
+        <button class="btn" id="nextBtn" data-t="common.next"></button>
       </div>
     </section>
   </main>
@@ -85,7 +86,7 @@ function enter(){
   if(code.length < 6) return;
   const who = (book.players || []).find(p => p.code === code && p.name);
   if(!who){
-    $("#msg").textContent = Bus.mode() === "찾는 중" ? "잠시만 기다려 주세요" : "없는 코드";   /* 「연결하는 중」은 참가자에게 안 보입니다(2026.10.13) */
+    $("#msg").textContent = Bus.mode() === "찾는 중" ? DLK.T("common.wait") : DLK.T("rc.not_found");   /* 「연결하는 중」은 참가자에게 안 보입니다(2026.10.13) */
     PH.shake($("#slots"));
     setTimeout(() => { code = ""; paintSlots(); paintPad(); }, 320);
     setTimeout(() => $("#msg").textContent = "", 1600);
@@ -97,9 +98,8 @@ function enter(){
   /* 이 폰에 그 사람의 이름표를 붙입니다 — 폰 쪽지는 장부에서 다시 채웁니다 */
   Bus.becomeMe(who.id);
   PH.save("dlk.pairs." + who.id, who.got || []);
-  PH.save("dlk.sents." + who.id, []);
   PH.flash();
-  PH.typeOut($("#welcome"), `${who.name} 님 복귀 완료`, 60, () => $("#nextBtn").style.visibility = "visible");
+  PH.typeOut($("#welcome"), DLK.T("rc.welcome", {name:who.name}), 60, () => $("#nextBtn").style.visibility = "visible");
   $("#pad").style.visibility = "hidden";
 }
 /* 「다음」 — 지금 진행 중인 단계의 화면으로 */
@@ -107,7 +107,7 @@ $("#nextBtn").onclick = () => Bus.go(Bus.phoneAt(book.press || 0));
 
 Bus.onState(b => { book = b; });
 paintSlots(); paintPad();
-PH.typeOut($("#guide"), "진행자에게 개인 코드를 문의하세요", 50);
+PH.typeOut($("#guide"), DLK.T("rc.guide"), 50);
 </script>
 </body>
 </html>

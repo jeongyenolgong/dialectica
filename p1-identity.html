@@ -7,8 +7,9 @@
 <title>디알렉티카 — 입장</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
 <link rel="stylesheet" href="phone.css?b=261012-1">
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261007-1"></script>
 </head>
 <body>
@@ -27,11 +28,11 @@
       <div class="mid">
         <p class="guide" id="guide"></p>
         <label class="field" id="field">
-          <input id="name" placeholder="이름" autocomplete="off" autocapitalize="off"
+          <input id="name" data-t="p1.name_placeholder" autocomplete="off" autocapitalize="off"
                  autocorrect="off" spellcheck="false" enterkeyhint="done">
         </label>
         <p class="msg" id="msg"></p>
-        <button class="btn" id="enter">입장</button>
+        <button class="btn" id="enter" data-t="p1.enter"></button>
         <p class="sub" id="wait" style="margin-top:28px"></p>
       </div>
     </section>
@@ -44,16 +45,16 @@ const ME = Bus.me();
 const MAXLEN = 12;                       /* 6.2 확정 — 최대 12자 */
 let joined = false, sent = null, gone = false;
 
-PH.typeOut($("#guide"), "이름을 입력하세요", 60);
+PH.typeOut($("#guide"), DLK.T("p1.guide"), 60);
 
 /* ⭐ 이름 규칙(6.2) — 한글·영문·공백만, 12자까지.
    ⛔ 치는 동안 칸을 고쳐 쓰지 않습니다 — 천지인 조합이 끊깁니다. 「입장」을 누를 때 한 번만 봅니다 */
 function check(raw){
   const s = DLK.tidy(raw);
-  if(!s) return {err:"이름을 입력하세요"};
-  if(/[ㄱ-ㆎ]/.test(s)) return {err:"글자를 끝까지 입력하세요"};
-  if(!/^[가-힣A-Za-z ]+$/.test(s)) return {err:"한글과 영문만 쓸 수 있어요"};
-  if([...s].length > MAXLEN) return {err:`${MAXLEN}자까지 쓸 수 있어요`};
+  if(!s) return {err:DLK.T("p1.err_empty")};
+  if(/[ㄱ-ㆎ]/.test(s)) return {err:DLK.T("p1.err_jamo")};
+  if(!/^[가-힣A-Za-z ]+$/.test(s)) return {err:DLK.T("p1.err_chars")};
+  if([...s].length > MAXLEN) return {err:DLK.T("p1.err_len", {n:MAXLEN})};
   return {name:s};
 }
 
@@ -69,7 +70,7 @@ $("#enter").onclick = () => PH.commit($("#name"), raw => {
   sent = r.name;
   $("#enter").classList.add("dim");
   /* 장부에 닿기 전에는 「잠시만 기다려 주세요」 — 「연결하는 중」은 참가자에게 안 보입니다(2026.10.13 사용자) */
-  if(!joined) $("#wait").textContent = "잠시만 기다려 주세요";
+  if(!joined) $("#wait").textContent = DLK.T("common.wait");
   /* ⛔ 장부에 이름이 닿은 것을 **보고 나서** 넘어갑니다 — 곧바로 넘어가면
         다시 말할 기회가 같이 사라져 끝까지 이름 없는 사람이 됩니다 */
   Bus.sayUntil({name:{id:ME, name:sent}}, b => (Bus.mine(b) || {}).name === sent);

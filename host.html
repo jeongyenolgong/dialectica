@@ -106,8 +106,9 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
 <script src="sphere.js?b=261013-3"></script>
@@ -116,8 +117,8 @@
 
 <header>
   <span class="logo">디알렉티카</span>
-  <span class="title">진행자용 화면</span>
-  <span class="right"><button class="ghost" id="screenBtn">스크린</button></span>
+  <span class="title" data-t="h.title"></span>
+  <span class="right"><button class="ghost" id="screenBtn" data-t="h.screen_btn"></button></span>
 </header>
 
 <nav class="crumb" id="crumb"></nav>
@@ -126,15 +127,15 @@
   <div class="topline">
     <div class="hero" id="hero"></div>
     <div class="right">
-      <button class="ghost" id="searchBtn">이름 검색</button>
-      <input id="searchBox" placeholder="이름" hidden>
+      <button class="ghost" id="searchBtn" data-t="h.search"></button>
+      <input id="searchBox" data-t="h.search_placeholder" hidden>
     </div>
   </div>
   <div class="board" id="board"></div>
 </main>
 
 <div class="bottom">
-  <button id="next">다음</button>
+  <button id="next" data-t="common.next"></button>
 </div>
 
 <div id="veil">
@@ -142,14 +143,14 @@
     <div class="l1" id="mL1"></div>
     <div class="l2" id="mL2"></div>
     <div class="btns">
-      <button class="ghost" id="cancel">취소</button>
+      <button class="ghost" id="cancel" data-t="h.cancel"></button>
       <button class="go" id="go"></button>
     </div>
   </div>
 </div>
 
 <footer>
-  <span>연습용 흉내 인원 —</span><span id="btns"></span><span id="gauge"></span>
+  <span data-t="h.mock_label"></span><span id="btns"></span><span id="gauge"></span>
 </footer>
 
 <script>
@@ -188,20 +189,13 @@ const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
 
 /* ── 「다음」 네 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제 · 2026.10.14 짝 단계 추가) ── */
 const PRESSES = [
-  {at:"entry",   l1:"수집을 시작합니다", l2:"참가자 전원이 단어 수집 화면으로 넘어갑니다.",
-                 go:"다음", act(){ stage = "collect"; runMockCollect(); }},
-  {at:"collect", l1:"수집을 종료하고 리뷰를 시작합니다",
-                 l2:"입력 중인 참가자도 그 자리에서 대기 화면으로 넘어갑니다. 스크린에 많이 고른 단어 5개가 하나씩 뜹니다.",
-                 go:"다음", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
-  {at:"review",  l1:"리뷰를 마치고 짝을 발표합니다",
-                 l2:"답이 가장 먼 두 사람끼리 짝이 됩니다(홀수면 한 팀은 셋). 스크린에 한 쌍씩 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
-                 go:"다음", warn:true, act(){ clearAll(); stage = "pair"; buildPairs(); }},
-  {at:"pair",    l1:"짝 발표를 마치고 결과로 넘어갑니다", l2:"스크린에 결과가 뜹니다. 참가자 폰은 대기 화면 그대로입니다.",
-                 go:"다음", warn:true, act(){ clearAll(); stage = "result"; }},
+  /* 문구는 엑셀 「문구」 시트 h.press.* (2026.10.14) */
+  {at:"entry",   t:"collect", go:"common.next", act(){ stage = "collect"; runMockCollect(); }},
+  {at:"collect", t:"review",  go:"common.next", warn:true, act(){ clearAll(); stage = "review"; buildReview(); }},
+  {at:"review",  t:"pair",    go:"common.next", warn:true, act(){ clearAll(); stage = "pair"; buildPairs(); }},
+  {at:"pair",    t:"result",  go:"common.next", warn:true, act(){ clearAll(); stage = "result"; }},
   /* 「종료」는 판을 닫고 새 판을 엽니다 — 플레이 테스트를 이어서 하기 위한 것입니다 */
-  {at:"result",  l1:"워크숍을 종료하고 새 판을 엽니다",
-                 l2:"이 판의 결과가 지워지고 참가자 폰이 전부 처음 화면으로 돌아갑니다.",
-                 go:"종료", warn:true, act(){ newGame(); }},
+  {at:"result",  t:"end",     go:"h.end",       warn:true, act(){ newGame(); }},
 ];
 const ORDER = ["entry","collect","review","pair","result"];
 
@@ -216,9 +210,9 @@ function avg(){
 
 /* 사람 옆 숫자 — 그 단계에서 세는 것 */
 function personNum(p){
-  if(stage === "entry")   return p.start ? `<span>${p.start.join(" · ")}</span>` : `<span>고르는 중</span>`;
+  if(stage === "entry")   return p.start ? `<span>${p.start.join(" · ")}</span>` : `<span>${DLK.T("h.picking")}</span>`;
   if(stage === "collect" || stage === "review"){ const g = gOf(p);
-    return `<b>${p.got.length}</b>개 &nbsp; ${g.join(" · ")}`; }
+    return `${DLK.T("h.got_count", {n:`<b>${p.got.length}</b>`})} &nbsp; ${g.join(" · ")}`; }
   return "";
 }
 const isDone = p => stage === "collect" ? gOf(p).every(v => v >= DLK.FULL) : false;
@@ -227,7 +221,7 @@ const board = document.getElementById("board");
 const hero  = document.getElementById("hero");
 
 function drawCrumb(){
-  const names = ["입장","수집","리뷰","짝","결과"];
+  const names = ORDER.map(s => DLK.T("h.stage." + s));
   const now = ORDER.indexOf(stage);
   document.getElementById("crumb").innerHTML = names
     .map((n,i) => `<b class="${i === now ? "on" : ""}">${n}</b>`).join("<span>›</span>");
@@ -235,21 +229,21 @@ function drawCrumb(){
 function drawHero(){
   const a = avg();
   const C = DLK.CHARS;
-  if(stage === "entry") hero.innerHTML = `<span>접속<span class="n">${people.length}</span>명</span>`;
+  if(stage === "entry") hero.innerHTML = `<span>${DLK.T("h.hero.joined", {n:`<span class="n">${people.length}</span>`})}</span>`;
   else if(stage === "collect") hero.innerHTML = a ? C.map((c,i) =>
       `<span><span class="k">${c.short}</span><span class="n">${a.g[i]}</span></span>`).join("")
-      + `<span class="k">방 평균</span>` : "";
+      + `<span class="k">${DLK.T("h.hero.room_avg")}</span>` : "";
   else if(stage === "review") hero.innerHTML = review && review.list.length ?
-      (review.i < 0 ? `<span><span class="k">리뷰</span><span class="n">5</span><span class="k">함께 보기</span></span>`
-                    : `<span><span class="k">리뷰</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>`) : "";
+      (review.i < 0 ? `<span><span class="k">${DLK.T("h.hero.review")}</span><span class="n">${review.top || 5}</span><span class="k">${DLK.T("h.hero.together")}</span></span>`
+                    : `<span><span class="k">${DLK.T("h.hero.review")}</span><span class="n">${review.i + 1}</span><span class="k">/ ${review.list.length}</span></span>`) : "";
   else if(stage === "pair") hero.innerHTML = pair && pair.list.length ?
-      `<span><span class="k">짝</span><span class="n">${pair.i + 1}</span><span class="k">/ ${pair.list.length}</span></span>` : "";
+      `<span><span class="k">${DLK.T("h.hero.pair")}</span><span class="n">${pair.i + 1}</span><span class="k">/ ${pair.list.length}</span></span>` : "";
   else hero.innerHTML = "";
 }
 
 function draw(){
   if(stage === "result"){
-    board.innerHTML = `<div class="final">스크린에서 결과를 확인하세요<div class="found" id="found"></div></div>`;
+    board.innerHTML = `<div class="final">${DLK.T("h.result_note")}<div class="found" id="found"></div></div>`;
   }else if(stage === "review"){
     drawReview();
   }else if(stage === "pair"){
@@ -259,7 +253,7 @@ function draw(){
     const ul = document.getElementById("ul");
     people.filter(p => p.named).forEach(p => ul.appendChild(row(p)));
   }
-  document.getElementById("next").textContent = stage === "result" ? "종료" : "다음";
+  document.getElementById("next").textContent = DLK.T(stage === "result" ? "h.end" : "common.next");
   drawCrumb(); drawHero(); applySearch(); gauge();
 }
 function row(p){
@@ -331,22 +325,22 @@ function buildReview(){
 }
 function drawReview(){
   if(!review || !review.list.length){
-    board.innerHTML = `<div class="review"><p class="note">리뷰할 단어가 없습니다 — 입장 때 고른 단어가 없습니다.</p></div>`;
+    board.innerHTML = `<div class="review"><p class="note">${DLK.T("h.review.none")}</p></div>`;
     return;
   }
   const rows = review.list.map((r, k) => {
     const far = r.far.map(j => r.ans[j]).map(x => `<span><b>${DLK.esc(x.name)}</b> ${DLK.esc(x.a)}</span>`).join("");
     return `<div class="rw ${k === review.i ? "on" : ""}" data-k="${k}">`
       + `<span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span>`
-      + `<span class="k">${r.n}명 고름 · 답 ${r.ans.length}</span>`
-      + `<span class="far">${far || `<span>모인 답 없음</span>`}</span></div>`;
+      + `<span class="k">${DLK.T("h.review.row_stat", {n:r.n, a:r.ans.length})}</span>`
+      + `<span class="far">${far || `<span>${DLK.T("h.review.no_answers")}</span>`}</span></div>`;
   }).join("");
-  const over = `<div class="rw ${review.i < 0 ? "on" : ""}" data-k="-1"><span class="k"></span><span class="w">함께 보기</span>`
-    + `<span class="k">단어 ${review.top || 5}개 목록</span><span class="far"><span>스크린에 많이 고른 단어 ${review.top || 5}개가 한 화면에 · 그 뒤 ${review.list.length - (review.top || 5)}개 이어서</span></span></div>`;
+  const over = `<div class="rw ${review.i < 0 ? "on" : ""}" data-k="-1"><span class="k"></span><span class="w">${DLK.T("h.review.together")}</span>`
+    + `<span class="k">${DLK.T("h.review.together_sub", {n:review.top || 5})}</span><span class="far"><span>${DLK.T("h.review.together_note", {n:review.top || 5, m:review.list.length - (review.top || 5)})}</span></span></div>`;
   board.innerHTML = `<div class="review">${over}${rows}<div class="nav">`
-    + `<button id="rvPrev" ${review.i < 0 ? "disabled" : ""}>이전 단어</button>`
-    + `<button id="rvNext" ${review.i >= review.list.length - 1 ? "disabled" : ""}>다음 단어</button></div>`
-    + `<p class="note">스크린에 지금 단어가 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다.</p></div>`;
+    + `<button id="rvPrev" ${review.i < 0 ? "disabled" : ""}>${DLK.T("h.review.prev")}</button>`
+    + `<button id="rvNext" ${review.i >= review.list.length - 1 ? "disabled" : ""}>${DLK.T("h.review.next")}</button></div>`
+    + `<p class="note">${DLK.T("h.review.note")}</p></div>`;
   board.querySelectorAll(".rw").forEach(el => el.onclick = () => setReview(+el.dataset.k));
   document.getElementById("rvPrev").onclick = () => setReview(review.i - 1);
   document.getElementById("rvNext").onclick = () => setReview(review.i + 1);
@@ -410,20 +404,20 @@ function buildPairs(){
 }
 function drawPairs(){
   if(!pair || !pair.list.length){
-    board.innerHTML = `<div class="review"><p class="note">짝을 지을 사람이 없습니다.</p></div>`;
+    board.innerHTML = `<div class="review"><p class="note">${DLK.T("h.pair.none")}</p></div>`;
     return;
   }
   const f = v => v == null ? "–" : v.toFixed(2);
   const rows = pair.list.map((t, k) =>
     `<div class="rw ${k === pair.i ? "on" : ""}" data-k="${k}">`
       + `<span class="k">${k + 1}</span><span class="w">${t.names.map(DLK.esc).join(" · ")}</span>`
-      + `<span class="k">${t.w ? DLK.esc(t.w) : "같이 적은 단어 없음"}</span>`
-      + `<span class="far">${t.ans.map(x => `<span><b>${DLK.esc(x.name)}</b> ${x.a == null ? "(안 적음)" : DLK.esc(x.a)}</span>`).join("")}`
-      + `<span>겹침 ${t.n}장 · 거리 ${f(t.adj)}</span></span></div>`).join("");
+      + `<span class="k">${t.w ? DLK.esc(t.w) : DLK.T("h.pair.no_word")}</span>`
+      + `<span class="far">${t.ans.map(x => `<span><b>${DLK.esc(x.name)}</b> ${x.a == null ? DLK.T("h.pair.not_written") : DLK.esc(x.a)}</span>`).join("")}`
+      + `<span>${DLK.T("h.pair.stat", {n:t.n, d:f(t.adj)})}</span></span></div>`).join("");
   board.innerHTML = `<div class="review">${rows}<div class="nav">`
-    + `<button id="prPrev" ${pair.i <= 0 ? "disabled" : ""}>이전 짝</button>`
-    + `<button id="prNext" ${pair.i >= pair.list.length - 1 ? "disabled" : ""}>다음 짝</button></div>`
-    + `<p class="note">스크린에 지금 짝이 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다. 방 평균 거리 ${f(pair.m)} · 당김 ${pair.k}장</p></div>`;
+    + `<button id="prPrev" ${pair.i <= 0 ? "disabled" : ""}>${DLK.T("h.pair.prev")}</button>`
+    + `<button id="prNext" ${pair.i >= pair.list.length - 1 ? "disabled" : ""}>${DLK.T("h.pair.next")}</button></div>`
+    + `<p class="note">${DLK.T("h.pair.note", {m:f(pair.m), k:pair.k})}</p></div>`;
   board.querySelectorAll(".rw").forEach(el => el.onclick = () => setPair(+el.dataset.k));
   document.getElementById("prPrev").onclick = () => setPair(pair.i - 1);
   document.getElementById("prNext").onclick = () => setPair(pair.i + 1);
@@ -512,10 +506,10 @@ const veil = document.getElementById("veil");
 document.getElementById("next").onclick = () => {
   const P = PRESSES[press];
   if(!P) return;
-  document.getElementById("mL1").textContent = P.l1;
+  document.getElementById("mL1").textContent = DLK.T("h.press." + P.t + ".l1");
   const l2 = document.getElementById("mL2");
-  l2.textContent = P.l2; l2.classList.toggle("warn", !!P.warn);
-  document.getElementById("go").textContent = P.go;
+  l2.textContent = DLK.T("h.press." + P.t + ".l2"); l2.classList.toggle("warn", !!P.warn);
+  document.getElementById("go").textContent = DLK.T(P.go);
   veil.classList.add("on");
 };
 document.getElementById("cancel").onclick = close;
@@ -555,7 +549,7 @@ function newGame(){
   people = []; picks = {}; review = null; pair = null; words = {};
   Object.keys(ack).forEach(k => delete ack[k]);
   seq = 0; stage = "entry"; press = 0;
-  noted = "새 판을 열었습니다";
+  noted = DLK.T("h.new_game");
   gen++; gid = newGid();
   Bus.publish({press:0, players:[], picks:{}, review:null, pair:null, words:{}, gen, gid, ack:{}});
   draw();
@@ -594,12 +588,12 @@ function runMockCollect(){
 const btns = document.getElementById("btns");
 [3, 12, 30].forEach(n => {
   const b = document.createElement("button");
-  b.textContent = `${n}명 넣기`;
+  b.textContent = DLK.T("h.mock_add", {n});
   b.onclick = () => { if(stage === "entry") addMocks(n); };
   btns.appendChild(b);
 });
 function gauge(){
-  const label = {entry:"입장", collect:"수집", review:"리뷰", pair:"짝", result:"결과"}[stage];
+  const label = DLK.T("h.stage." + stage);
   document.getElementById("gauge").textContent =
     `판 ${Bus.build}/${Bus.mode()} · ${label} · 접속 ${people.length}명 · 이름 ${people.filter(p=>p.named).length}명`
     + (noted ? ` · ${noted}` : "");
@@ -622,7 +616,7 @@ Bus.onState(b => {
     seq = Math.max(0, ...people.map(p => p.at || 0));
     press = b.press || 0;
     stage = press < PRESSES.length ? PRESSES[press].at : "result";
-    noted = `장부를 이어받음 · ${people.length}명`;
+    noted = DLK.T("h.resumed", {n:people.length});
     draw();
   }else{
     Bus.publish({press:0, players:[], picks:{}, review:null, pair:null, words:{}, gen, gid, ack:{}});

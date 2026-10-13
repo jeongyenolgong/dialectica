@@ -22,8 +22,9 @@
         letter-spacing:.02em; text-align:center; line-height:1.6}
   #done span{white-space:nowrap}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261007-1"></script>
 </head>
 <body>
@@ -69,7 +70,7 @@ function show(){
   paintDone();
   if(i >= DLK.PICK_N){ finish(); return; }
   $("#step").textContent = `${i + 1} / ${DLK.PICK_N}`;
-  $("#guide").textContent = "가장 눈에 들어오는 단어 하나를 고르세요";
+  $("#guide").textContent = DLK.T("p1b.guide");
   const box = $("#chips");
   box.classList.remove("lock");
   box.innerHTML = ROUNDS[i].map(w => `<button class="chip">${DLK.esc(w)}</button>`).join("");

@@ -25,8 +25,9 @@
   .diff.same{color:var(--line)}
   #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="screen.js?b=261013-2"></script>
 </head>
 <body>
@@ -41,18 +42,18 @@
      ⛔ 득표 문장 다섯 · OU 막대는 투표·창작과 함께 없앴습니다(2026.10.13). 우승 팀 · 최다 득표 개인 · 최종 누적 순위는 없앴습니다(2026.10.07).
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
-<h1 class="stage"><span class="ko">결과 발표</span><span class="la">FINAL RESULT</span></h1>
+<h1 class="stage"><span class="ko" data-t="s.result.title"></span><span class="la" data-t="s.result.title_en"></span></h1>
 <main id="main" hidden>
   <div class="cmp" id="cmp"></div>
 </main>
-<div id="idle">결과를 준비하는 중</div>
+<div id="idle" data-t="s.result.idle"></div>
 <script>
 const $ = s => document.querySelector(s);
 SC.sizes();
 const C = DLK.CHARS;
 $("#cmp").innerHTML = C.map(c => `<div class="c" style="--gc:${c.color}"><div class="nm">${c.ko}</div>
-  <div class="row was"><span class="lb">시작</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
-  <div class="row now"><span class="lb">현재</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
+  <div class="row was"><span class="lb">${DLK.T("s.result.was")}</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
+  <div class="row now"><span class="lb">${DLK.T("s.result.now")}</span><div class="cells">${"<i></i>".repeat(20)}</div><span class="v"></span></div>
   <div class="diff"></div></div>`).join("");
 
 /* 처음 — 출발 비율의 전원 평균. 현재 — SC.roomAvg(수집까지 더한 비율) */
@@ -86,7 +87,7 @@ function render(b){
     const d = el.querySelector(".diff"); d.textContent = ""; d.className = "diff";
     timers.push(setTimeout(() => {
       const df = now[i] - was[i];
-      d.textContent = df === 0 ? "그대로" : (df > 0 ? df : "−" + (-df));
+      d.textContent = df === 0 ? DLK.T("s.result.same") : (df > 0 ? df : "−" + (-df));
       d.className = "diff " + (df > 0 ? "up" : df < 0 ? "down" : "same");
     }, 1600 + Math.ceil(now[i]/5)*45 + 200));
   });

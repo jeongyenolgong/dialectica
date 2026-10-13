@@ -18,8 +18,9 @@
   .a .k{font-size:calc(var(--rank) * .6); color:var(--line); letter-spacing:.1em}
   .a .t{font-size:var(--rank); line-height:1.3; word-break:keep-all}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="screen.js?b=261007-1"></script>
 </head>
 <body>
@@ -34,16 +35,16 @@
      ⛔ 팀 순위는 없앴습니다 — 2026.10.07 팀전 폐지. 그 자리에 방 평균이 섭니다.
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
-<h1 class="stage"><span class="ko">단어 수집</span><span class="la">WORD COLLECTION</span></h1>
+<h1 class="stage"><span class="ko" data-t="s.collect.title"></span><span class="la" data-t="s.collect.title_en"></span></h1>
 
 <main class="three">
-  <section><h2>단어 순위</h2><ol id="w"></ol></section>
-  <section><h2>개인 순위</h2><ol id="p"></ol></section>
-  <section><h2>방 평균</h2><div class="bars" id="bars"></div></section>
+  <section><h2 data-t="s.collect.word_rank"></h2><ol id="w"></ol></section>
+  <section><h2 data-t="s.collect.person_rank"></h2><ol id="p"></ol></section>
+  <section><h2 data-t="s.collect.room_avg"></h2><div class="bars" id="bars"></div></section>
 </main>
 
 <section class="answers">
-  <h2>모두의 답</h2>
+  <h2 data-t="s.collect.all_answers"></h2>
   <div class="ans" id="ans"><div class="a"></div><div class="a"></div><div class="a"></div></div>
 </section>
 <p id="gauge"></p>

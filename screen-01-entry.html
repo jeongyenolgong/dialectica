@@ -18,8 +18,9 @@
   @keyframes flash{0%{opacity:0} 50%{opacity:1; filter:brightness(2.2)} 100%{opacity:1; filter:brightness(1)}}
   #names li.new{animation:flash .3s steps(3,end) 1}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="screen.js?b=261007-1"></script>
 </head>
 <body>
@@ -28,7 +29,7 @@
      ⛔ 팀 열은 없앴습니다(2026.10.07 팀전 폐지). 새로 들어온 이름만 한 번 번쩍입니다.
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
-<p class="count">입장<b id="n">0</b>명</p>
+<p class="count"><span data-t="s.entry.before"></span><b id="n">0</b><span data-t="s.entry.after"></span></p>
 <ul id="names"></ul>
 
 <script>

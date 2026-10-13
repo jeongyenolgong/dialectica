@@ -15,8 +15,9 @@
   .caret.off{background:transparent}
   #dots{margin-top:60px; font-size:20px; color:var(--line); letter-spacing:.1em; min-height:1.2em}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="phone.js?b=261013-2"></script>
 </head>
 <body>
@@ -39,13 +40,13 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const TEXT = "잠시만 기다려 주세요";     /* 6.3 확정 */
+const TEXT = DLK.T("p3.wait");     /* 6.3 확정 — 엑셀 「문구」 */
 let shown = 0, caretOn = true;
 const paint = () => $("#line").innerHTML = TEXT.slice(0, shown) + `<span class="caret${caretOn ? "" : " off"}"></span>`;
 for(let i = 1; i <= TEXT.length; i++) setTimeout(() => { shown = i; paint(); }, i*90);
 setTimeout(() => setInterval(() => { caretOn = !caretOn; paint(); }, 500), TEXT.length*90);
 let n = 0;
-setInterval(() => { n = (n+1) % 4; $("#dots").textContent = "대기 중" + "·".repeat(n); }, 400);
+setInterval(() => { n = (n+1) % 4; $("#dots").textContent = DLK.T("p3.dots") + "·".repeat(n); }, 400);
 paint();
 
 /* 내 게이지 셋 — 창작·투표가 없어져 OU 게이지는 안 보입니다(2026.10.13) */

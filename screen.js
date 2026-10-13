@@ -96,9 +96,9 @@
   function roomAvg(b) {
     const P = (b.players || []).filter(p => p.name && p.g);
     if (!P.length) return null;
-    const s = [0, 0, 0]; let ou = 0;
-    P.forEach(p => { p.g.forEach((v, i) => s[i] += v); ou += p.ou || 0; });
-    return { g: s.map(v => Math.round(v / P.length)), ou: Math.round(ou / P.length), n: P.length };
+    const s = [0, 0, 0];
+    P.forEach(p => p.g.forEach((v, i) => s[i] += v));
+    return { g: s.map(v => Math.round(v / P.length)), n: P.length };
   }
 
   window.SC = { MS, K, sizes, flip, cells, line, top3, bars, roomAvg };

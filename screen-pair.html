@@ -22,8 +22,9 @@
   .mid{position:relative}
   #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
 </style>
-<script src="bus.js?b=261014-3"></script>
-<script src="data.js?b=261014-1"></script>
+<script src="bus.js?b=261014-4"></script>
+<script src="settings.js?b=261014-4"></script>
+<script src="data.js?b=261014-4"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261012-1"></script>
 <script src="sphere.js?b=261013-3"></script>
@@ -45,13 +46,13 @@
   <div class="left">
     <p id="no"></p>
     <div id="names"></div>
-    <p class="k">가장 멀었던 단어</p>
+    <p class="k" data-t="s.pair.farthest"></p>
     <p id="w"></p>
   </div>
   <div class="mid"><canvas id="cv"></canvas><div id="empty"></div></div>
   <div></div>
 </main>
-<div id="idle">짝을 준비하는 중</div>
+<div id="idle" data-t="s.pair.idle"></div>
 <p id="gauge"></p>
 
 <script>
@@ -78,7 +79,7 @@ function render(b){
   if(!t.w){
     /* 같이 적은 포스터가 없는 팀 — 구 대신 글로 */
     SPHERE.stop(); $("#empty").style.display = "flex";
-    $("#empty").textContent = "같이 적은 단어가 없습니다";
+    $("#empty").textContent = DLK.T("s.pair.none");
     return;
   }
   $("#empty").style.display = "none";
