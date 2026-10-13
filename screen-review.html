@@ -20,7 +20,6 @@
   .rest .nm{flex:0 0 auto; font-size:18px; color:var(--line); letter-spacing:.04em}
   .rest .a{font-size:var(--rank); word-break:keep-all}
   .rest .a.out{color:var(--line)}
-  .rk{font-size:18px; color:var(--line); letter-spacing:.1em}
   #no{font-size:var(--sub); color:var(--line); letter-spacing:.1em; font-variant-numeric:tabular-nums}
   #w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.1em .35em; word-break:keep-all; line-height:1.2}
   .k{font-size:var(--rank); color:var(--line); letter-spacing:.06em; line-height:1.6}
@@ -54,13 +53,12 @@
      · 단어 하나 = 포스터 단어 + 고른 사람 수 + 모인 답 수 + 그 단어의 거리 구에 답 전부를 점으로(흰 점)
        + 가장 먼 답 둘을 민트 점에 적은 말·이름으로, 오른쪽에 **나머지 전원**의 이름과 적은 말을 들어온 순서로(최대 30명, 14줄씩 두 열).
        (2026.10.13 사용자 "구에서는 가장 거리가 먼 두 사람의 이름과 그 단어가 나오고 그 옆에 나머지 사람들의 이름과 그들이 입력한 단어")
-       지도 밖 답(잴 수 없는 말)은 목록에서 흐리게.
+       지도 밖 답(잴 수 없는 말)은 목록에서 흐리게. 「리뷰 REVIEW」 제목 줄과 「나머지 N명」 글자는 뺌(2026.10.13 사용자).
      · 어느 단어를 띄울지는 진행자 화면(장부 review.i)이 정합니다. 여기는 보여 주기만.
      · review.i = -1 이면 첫 장: 많이 고른 단어 5개를 고른 수와 함께 한 화면에 (2026.10.13 사용자). 「다음 단어」로 1번부터.
      · 판정 없음 — 숫자도 맞음·틀림도 없습니다. 지도 밖 답은 껍질 바깥 흰 점(가장 먼 후보에선 뺌).
      ───────────────────────────────────────────────────────────────────── -->
 <header><span class="ko">디알렉티카</span><span class="la">DIALECTICA</span></header>
-<h1 class="stage"><span class="ko">리뷰</span><span class="la">REVIEW</span></h1>
 
 <section id="ov" hidden><h2>많이 고른 단어</h2></section>
 <main class="rv" id="rv" hidden>
@@ -71,7 +69,6 @@
   </div>
   <div class="mid"><canvas id="cv"></canvas><div id="empty">모인 답 없음</div></div>
   <div class="right">
-    <p class="rk" id="rk"></p>
     <div class="rest" id="rest"></div>
   </div>
 </main>
@@ -108,12 +105,16 @@ function render(b){
   $("#nAns").textContent = r.ans.length;
   const FAR = r.far || [];
   const rest = r.ans.filter((x, j) => !FAR.includes(j));
-  $("#rk").textContent = rest.length ? `나머지 ${rest.length}명` : "";
   $("#rest").innerHTML = rest.map(x =>
     `<div class="p"><span class="nm">${DLK.esc(x.name)}</span><span class="a${x.d == null ? " out" : ""}">${DLK.esc(x.a)}</span></div>`).join("");
   $("#empty").style.display = r.ans.length ? "none" : "flex";
   SPHERE.poster(r.w);
-  SPHERE.marks(r.ans.map((x, j) => ({ text:x.a, hi:FAR.includes(j), label:FAR.includes(j) ? x.a : "", sub:FAR.includes(j) ? x.name : "" })));
+  /* 먼 둘이 같은 말이면 점이 겹칩니다 — 점 하나에 이름을 나란히(2026.10.13 사용자 "거리가 먼 두 사람이 구에 나와야 하는데 지금 안 보이는데?") */
+  const byWord = {};
+  FAR.forEach(j => { const x = r.ans[j]; if(!x) return; (byWord[x.a] || (byWord[x.a] = [])).push(x.name); });
+  const hiMarks = Object.entries(byWord).map(([a, names]) => ({ text:a, hi:true, label:a, sub:names.join(" · ") }));
+  const restMarks = r.ans.filter((x, j) => !FAR.includes(j)).map(x => ({ text:x.a }));
+  SPHERE.marks([...restMarks, ...hiMarks]);
   SPHERE.start();
 }
 Bus.onState(render);
