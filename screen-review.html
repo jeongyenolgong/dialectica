@@ -19,6 +19,12 @@
   .rest .p{display:flex; align-items:baseline; gap:.7em; min-width:0; line-height:1.25}
   .rest .nm{flex:0 0 auto; font-size:18px; color:var(--line); letter-spacing:.04em}
   .rest .a{font-size:var(--rank); word-break:keep-all}
+  /* 목록 맨 위 — 가장 먼 두 사람(구의 민트 점과 같은 색) (2026.10.14 사용자 「다른 사람들의 이름과 단어가 나오는 부분 맨 위에」) */
+  .far{display:flex; flex-direction:column; gap:.9vh; padding-bottom:1.6vh; border-bottom:1px solid var(--dim); width:100%}
+  .far:empty{display:none}
+  .far .p{display:flex; align-items:baseline; gap:.7em; line-height:1.25}
+  .far .nm{flex:0 0 auto; font-size:18px; color:rgb(95,230,176); letter-spacing:.04em}
+  .far .a{font-size:var(--rank); color:rgb(95,230,176); word-break:keep-all}
   #no{font-size:var(--sub); color:var(--line); letter-spacing:.1em; font-variant-numeric:tabular-nums}
   #w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.1em .35em; word-break:keep-all; line-height:1.2}
   .k{font-size:var(--rank); color:var(--line); letter-spacing:.06em; line-height:1.6}
@@ -55,7 +61,7 @@
      「사람들이 가장 많이 선택한 단어 5개를 하나씩 보여주는데 해당 단어에서 가장 거리가 먼 단어를
       입력한 두 사람을 소개하고 그 사람이 입력한 단어를 함께 보는 걸로 할게.」
      · 단어 하나 = 포스터 단어 + 고른 사람 수 + 모인 답 수 + 그 단어의 거리 구에 답 전부를 점으로(흰 점)
-       + 가장 먼 답 둘을 민트 점에 적은 말·이름으로, 오른쪽에 **나머지 전원**의 이름과 적은 말을 들어온 순서로(최대 30명, 14줄씩 두 열).
+       + 가장 먼 답 둘을 민트 점에 적은 말·이름으로, 오른쪽 목록 맨 위에 그 둘을 민트로 한 번 더(2026.10.14 사용자), 그 아래 **나머지 전원**의 이름과 적은 말을 들어온 순서로(최대 30명, 14줄씩 두 열).
        (2026.10.13 사용자 "구에서는 가장 거리가 먼 두 사람의 이름과 그 단어가 나오고 그 옆에 나머지 사람들의 이름과 그들이 입력한 단어")
        ⭐목록에는 지도 밖 답(오타·장난)도 남들과 똑같이 적습니다(2026.10.13 사용자 "장난이나 오답이라도 다 표기되어야 해").
        「리뷰 REVIEW」 제목 줄과 「나머지 N명」 글자는 뺌(2026.10.13 사용자).
@@ -75,6 +81,7 @@
   </div>
   <div class="mid"><canvas id="cv"></canvas><div id="empty" data-t="s.review.no_answers"></div></div>
   <div class="right">
+    <div class="far" id="far"></div>
     <div class="rest" id="rest"></div>
   </div>
 </main>
@@ -118,6 +125,8 @@ function render(b){
   $("#nAns").textContent = r.ans.length;
   const FAR = r.far || [];
   const rest = r.ans.filter((x, j) => !FAR.includes(j));
+  $("#far").innerHTML = FAR.map(j => r.ans[j]).filter(Boolean).map(x =>
+    `<div class="p"><span class="nm">${DLK.esc(x.name)}</span><span class="a">${DLK.esc(x.a)}</span></div>`).join("");
   $("#rest").innerHTML = rest.map(x =>
     `<div class="p"><span class="nm">${DLK.esc(x.name)}</span><span class="a">${DLK.esc(x.a)}</span></div>`).join("");
   $("#empty").style.display = r.ans.length ? "none" : "flex";
