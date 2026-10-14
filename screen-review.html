@@ -28,14 +28,18 @@
          font-size:var(--sub); color:var(--line); letter-spacing:.1em}
   .mid{position:relative}
   #idle{flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:var(--title); color:var(--line); letter-spacing:.2em}
-  /* ── 첫 장 — 많이 고른 단어 5개를 함께 (2026.10.13 사용자) ── */
+  /* ── 첫 장 — 판마다 한 줄: 그 판에서 가장 많이 고른 단어를 크게, 나머지 다섯은 고른 수 순서로 옆에 (2026.10.14 사용자) ── */
   #ov{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3.2vh}
   #ov h2{padding-bottom:1vh}
-  #ov .r{display:grid; grid-template-columns:2em 14em 5em; gap:2.5vw; align-items:baseline}
+  #ov .r{display:grid; grid-template-columns:calc(var(--rank)*1.5) calc(var(--stage)*6.5 + var(--rank)*3) 1fr; gap:2vw; align-items:baseline; width:min(92vw, 1500px)}
   #ov .r .k{font-size:var(--rank); color:var(--line); text-align:right; font-variant-numeric:tabular-nums}
-  #ov .r .w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.08em .35em; justify-self:start; word-break:keep-all}
-  #ov .r .n{font-size:var(--rank); color:var(--line); text-align:right; font-variant-numeric:tabular-nums}
+  #ov .r .top{display:flex; align-items:baseline; gap:.6em; min-width:0}
+  #ov .r .w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.08em .35em; word-break:keep-all; white-space:nowrap}
+  #ov .r .n{font-size:var(--rank); color:var(--line); font-variant-numeric:tabular-nums; white-space:nowrap}
   #ov .r .n b{font-weight:400; color:var(--name)}
+  #ov .r .rest5{display:flex; flex-wrap:wrap; align-items:baseline; column-gap:1.6em; row-gap:.4em; font-size:var(--rank)}
+  #ov .r .rest5 span{white-space:nowrap}
+  #ov .r .rest5 b{font-weight:400; color:var(--line); margin-left:.35em; font-variant-numeric:tabular-nums}
 </style>
 <script src="bus.js?b=261014-10"></script>
 <script src="settings.js?b=261014-7"></script>
@@ -56,7 +60,7 @@
        ⭐목록에는 지도 밖 답(오타·장난)도 남들과 똑같이 적습니다(2026.10.13 사용자 "장난이나 오답이라도 다 표기되어야 해").
        「리뷰 REVIEW」 제목 줄과 「나머지 N명」 글자는 뺌(2026.10.13 사용자).
      · 어느 단어를 띄울지는 진행자 화면(장부 review.i)이 정합니다. 여기는 보여 주기만.
-     · review.i = -1 이면 첫 장: 많이 고른 단어 5개(review.top)를 고른 수와 함께 한 화면에 (2026.10.13 사용자). 「다음 단어」로 1번부터.
+     · review.i = -1 이면 첫 장: 입장 고르기 다섯 판을 한 줄씩 — 그 판에서 가장 많이 고른 단어를 크게, 나머지 다섯은 고른 수 순서로 옆에 (2026.10.14 사용자). 「다음 단어」로 1번부터.
      · 6번부터는 나머지 단어(답이 모인 것)가 같은 화면으로 이어집니다 — 번호는 「N / 전체」(2026.10.13 사용자 "나머지 단어들도 똑같이").
      · 판정 없음 — 숫자도 맞음·틀림도 없습니다. 지도 밖 답은 껍질 바깥 흰 점(가장 먼 후보에선 뺌).
      ───────────────────────────────────────────────────────────────────── -->
@@ -92,8 +96,15 @@ function render(b){
   /* 첫 장 — 5개 함께 */
   if(i < 0){
     $("#rv").hidden = true; $("#ov").hidden = false; SPHERE.stop(); key = null;
-    $("#ov").innerHTML = `<h2>${DLK.T("s.review.top")}</h2>` + R.list.slice(0, R.top || 5).map((r, k) =>
-      `<div class="r"><span class="k">${k + 1}</span><span class="w">${DLK.esc(r.w)}</span><span class="n">${DLK.T("s.review.n_people", {n:`<b>${r.n}</b>`})}</span></div>`).join("");
+    /* 판은 모두에게 같습니다(DLK.pickRounds). 고른 수는 장부의 review.list에서, 같은 수면 목록 순서(먼저 고른 쪽) */
+    const at = new Map(R.list.map((r, k) => [r.w, k]));
+    const nOf = w => { const r = R.list[at.get(w)]; return r ? r.n : 0; };
+    $("#ov").innerHTML = `<h2>${DLK.T("s.review.top")}</h2>` + DLK.pickRounds().map((round, k) => {
+      const [top, ...rest] = round.slice().sort((a, b) => nOf(b) - nOf(a) || (at.get(a) ?? 99) - (at.get(b) ?? 99));
+      return `<div class="r"><span class="k">${k + 1}</span>`
+        + `<span class="top"><span class="w">${DLK.esc(top)}</span><span class="n">${DLK.T("s.review.n_people", {n:`<b>${nOf(top)}</b>`})}</span></span>`
+        + `<span class="rest5">${rest.map(w => `<span>${DLK.esc(w)}<b>${nOf(w)}</b></span>`).join("")}</span></div>`;
+    }).join("");
     return;
   }
   $("#ov").hidden = true; $("#rv").hidden = false;
