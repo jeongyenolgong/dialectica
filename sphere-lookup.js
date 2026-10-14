@@ -3,11 +3,13 @@
 
    거리표(sphere-table.js)는 기본형만 들고 있습니다(차분하다 · 밝다 · 자유롭다 · 역동 …).
    사람은 「차분함」「따뜻한」「자유로움」「기존의 틀」처럼 칩니다. 그 사이를 여기서 잇습니다.
+     ⓪ 문장부호(! . ? ~ , · …)는 띄어쓰기로 바꿉니다 — 「자유!」는 「자유」, 「자유,평화」는 두 조각 (2026.10.14)
      ① 띄어쓰기로 나눕니다. 조각마다 따로 찾아, 찾은 것들의 자리를 평균합니다.
      ② 조각이 그대로 없으면 활용형을 기본형으로 돌려 봅니다(함→하다 · 한→하다 · 움→ㅂ다 · 게→다 · 적→(명사) …).
-     ③ 그래도 없으면 꼬리의 조사(의·와·과·에·을·를 …)를 떼고 다시.
+     ③ 그래도 없으면 꼬리의 조사(의·와·과·에·을·를 …)를 떼고 다시. 두 겹(나만의→나만→나)까지, 한 글자 말(길을→길)도 (2026.10.14)
      ④ 띄어쓰기 없이 붙여 친 「기존의틀」은 조사 자리에서 갈라 봅니다.
      ⑤ 영어는 소문자로, 꼬리(s·es·ed·ing·ly·ness…)를 떼어 봅니다. 한/영 전환을 깜빡한 입력은 한글로 되돌립니다.
+   「것·수·등」처럼 뜻이 없는 말은 다른 조각을 찾았으면 뺍니다(익숙한 것에 머무르기 → 익숙하다 + 머무르다) (2026.10.14)
    판정은 하지 않습니다 — 찾으면 자리를, 못 찾으면 「지도 밖」을 돌려줄 뿐입니다.
    ───────────────────────────────────────────────────────────────────────── */
 window.LOOKUP = (() => {
@@ -17,7 +19,7 @@ window.LOOKUP = (() => {
   const comp = (a, b, c) => String.fromCharCode(0xAC00 + a * 588 + b * 28 + c);
   const J = x => JONG.indexOf(x);
   /* 마지막 글자의 받침을 바꿉니다 */
-  const setJong = (s, jong) => { const d = dec(s.at(-1)); return d ? s.slice(0, -1) + comp(d[0], d[1], J(jong)) : null; };
+  const setJong = (s, jong) => { if(!s) return null; const d = dec(s.at(-1)); return d ? s.slice(0, -1) + comp(d[0], d[1], J(jong)) : null; };
 
   /* 어간 → 기본형 후보. 받침 없는 어간이면 ㅂ·ㄹ 불규칙(어두운→어둡다 · 먼→멀다)도 함께 */
   function bases(stem){
@@ -32,7 +34,7 @@ window.LOOKUP = (() => {
     const last = t.at(-1), d = dec(last), head = t.slice(0, -1);   /* 한 글자(먼·큰·쉼)도 받침 규칙으로 돌립니다 */
     if(!d) return c;
     if(last === "음" || last === "은" || last === "는") c.push(...bases(head));          /* 밝음→밝다 · 작은→작다 · 흐르는→흐르다 */
-    if(last === "움" || last === "운") c.push(setJong(head, "ㅂ") + "다", ...bases(head)); /* 즐거움→즐겁다 · 어두운→어둡다 */
+    if((last === "움" || last === "운") && head) c.push(setJong(head, "ㅂ") + "다", ...bases(head)); /* 즐거움→즐겁다 · 어두운→어둡다. 한 글자 「운」은 그대로(2026.10.14 — 멈추던 것) */
     if(last === "게") c.push(...bases(head));                                            /* 차분하게→차분하다 · 밝게→밝다 */
     if(last === "히") c.push(head + "하다");                                             /* 조용히→조용하다 */
     if(last === "적") c.push(head);                                                      /* 역동적→역동 */
@@ -40,10 +42,13 @@ window.LOOKUP = (() => {
     if(jong === J("ㅁ") || jong === J("ㄴ") || jong === J("ㄹ")) c.push(...bases(head + comp(d[0], d[1], 0)));  /* 차분함→차분하다 · 따뜻한→따뜻하다 · 기쁨→기쁘다 */
     if(jong === J("ㄻ")) c.push(head + comp(d[0], d[1], J("ㄹ")) + "다");                 /* 삶→살다 */
     if(n >= 3 && /[성감들]$/.test(t)) c.push(head, head + "적", head + "하다");            /* 역동성→역동·역동적 · 안정감→안정 */
+    /* 2026.10.14 — 문장처럼 쓴 답의 끝말. 앞의 규칙이 먼저 찾은 것은 그대로 둡니다(뒤에 붙임) */
+    if(/[기고지며면]/.test(last)) c.push(...bases(head));                                 /* 머무르기→머무르다 · 도전하고→도전하다 · 멈추지→멈추다 */
+    if(last === "해" && head) c.push(head + "하다");                                     /* 도전해→도전하다 */
     return c.filter(Boolean);
   }
   /* 꼬리 조사 — 조각이 그대로는 없을 때만 떼어 봅니다 */
-  const PARTICLES = ["에서", "으로", "처럼", "같은", "보다", "의", "와", "과", "에", "로", "을", "를", "이", "가", "은", "는", "도", "만"];
+  const PARTICLES = ["에서", "으로", "처럼", "같은", "보다", "에게", "까지", "부터", "의", "와", "과", "에", "로", "을", "를", "이", "가", "은", "는", "도", "만", "서", "랑"];   /* 에게·까지·부터·서·랑은 2026.10.14 */
 
   /* 영어 — 소문자, 꼬리 떼기 */
   function enCandidates(t){
@@ -87,9 +92,11 @@ window.LOOKUP = (() => {
     }
     if(!/^[가-힣]+$/.test(t)) return null;
     let r = first(koCandidates(t)); if(r) return r;
-    for(const p of PARTICLES){                                               /* 조사 떼기 */
-      if(t.length > p.length + 1 && t.endsWith(p)){ r = first(koCandidates(t.slice(0, -p.length))); if(r) return r; }
-    }
+    /* 조사 떼기 — 먼저 한 겹, 없으면 두 겹(나만의 → 나만 → 나). 한 글자 말에 붙은 조사(길을 · 꿈을)도 뗍니다(2026.10.14) */
+    const strip = s => PARTICLES.filter(p => s.length > p.length && s.endsWith(p)).map(p => s.slice(0, -p.length));
+    const once = strip(t);
+    for(const s of once){ r = first(koCandidates(s)); if(r) return r; }
+    for(const s of once) for(const s2 of strip(s)){ r = first(koCandidates(s2)); if(r) return r; }
     return null;
   }
   /* 붙여 쓴 두 말 — 「기존의틀」을 조사 자리에서 갈라 봅니다(양쪽 다 두 글자 이상) */
@@ -105,9 +112,12 @@ window.LOOKUP = (() => {
     return null;
   }
 
+  /* 뜻이 없는 말 — 다른 조각을 찾았으면 평균에서 뺍니다. 이것뿐이면 그대로 둡니다 */
+  const FILLER = new Set(["것", "수", "등", "데", "바", "줄", "듯"]);
+
   /* 입력 전체 → 조각마다 { text, lemma }. lemma가 null이면 그 조각은 지도 밖 */
   function resolve(text, has){
-    const parts = (text || "").normalize("NFC").trim().split(/\s+/).filter(Boolean);
+    const parts = (text || "").normalize("NFC").replace(/[\p{P}\p{Sm}\p{Sk}]/gu, " ").trim().split(/\s+/).filter(Boolean);
     const out = [];
     for(const p of parts){
       const l = one(p, has);
@@ -115,6 +125,8 @@ window.LOOKUP = (() => {
       const sp = /^[가-힣]{4,}$/.test(p) ? splitJoined(p, has) : null;
       if(sp) out.push(...sp); else out.push({ text: p, lemma: null });
     }
+    if(out.some(x => x.lemma && !FILLER.has(x.lemma)))
+      out.forEach(x => { if(x.lemma && FILLER.has(x.lemma)){ x.lemma = null; x.filler = true; } });
     return out;
   }
   return { resolve, one, koCandidates, enCandidates, toHangul };
