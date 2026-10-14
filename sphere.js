@@ -104,13 +104,13 @@ window.SPHERE = (() => {
   /* 답 여럿 — [{text, hi, label}] */
   function marksOf(list){
     marks = (list || []).map(m => { const r = locate(cur, m.text);
-      return { pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: !!m.hi, label: m.label || "", sub: m.sub || "", outside: r.outside }; });
+      return { pos: r.pos, links: r.outside ? [] : cur.nearest(r.pos, N_LINK), hi: !!m.hi, label: m.label || "", sub: m.sub || "", outside: r.outside, rim: rimOf(m.text) }; });
   }
 
   /* 내 답 하나 — 수집 화면. sphere-lookup.js가 기본형으로 읽습니다 */
   function place(text){
     const r = locate(cur, text);
-    marks = [{ pos: r.pos, links: cur.nearest(r.pos, N_LINK), hi: true, label: "", outside: r.outside }];
+    marks = [{ pos: r.pos, links: r.outside ? [] : cur.nearest(r.pos, N_LINK), hi: true, label: "", outside: r.outside, rim: rimOf(text) }];
     return { outside: r.outside, readAs: r.readAs };
   }
 
@@ -119,6 +119,11 @@ window.SPHERE = (() => {
     for(let i = 0; i < nodes.length; i++){ const w = sway[i], a = BREATH * Math.sin(t / 1000 * w.f * Math.PI * 2 + w.ph);
       for(let k = 0; k < 3; k++) nodes[i][k] = base[i][k] + w.d[k] * a; }
   }
+  /* 지도 밖 답 — 화면 기준으로 늘 원 바깥 가장자리에. 구가 돌아도 그 자리에 머뭅니다(2026.10.14 사용자 "그냥 구 바깥에만 찍히면 돼" → "응 그렇게 하자").
+     입체 자리로 두면 화면 앞뒤에 놓일 때 중심 가까이 겹쳐 보여 「아주 가까운 답」으로 읽혔습니다. 각도는 답 글자로 정해 다시 열어도 같습니다 */
+  const rimOf = text => rng(hash(String(text || "")))() * Math.PI * 2;
+  const RIM = .45;                         /* 캔버스 폭 대비 중심에서의 거리 — 구 테두리(≈.41) 바깥 */
+  function rimAt(a){ return { x: W/2 + Math.cos(a) * W * RIM, y: W/2 + Math.sin(a) * W * RIM, z: 0, k: 1 }; }
   function proj(p){
     const ca = Math.cos(ang), sa = Math.sin(ang), ct = Math.cos(TILT), st = Math.sin(TILT);
     let x = p[0]*ca + p[2]*sa, z = -p[0]*sa + p[2]*ca, y = p[1];
@@ -144,7 +149,7 @@ window.SPHERE = (() => {
 
     const items = P.map(p => ({p, kind:"node"}));
     const C = proj([0,0,0]); items.push({p:C, kind:"core"});
-    const MK = marks.map(m => ({ p: proj(m.pos), m }));
+    const MK = marks.map(m => ({ p: m.outside ? rimAt(m.rim) : proj(m.pos), m }));
     MK.forEach(x => items.push({p:x.p, kind: x.m.hi ? "mine" : "ans", m: x.m}));
     items.sort((a, b) => b.p.z - a.p.z);
 

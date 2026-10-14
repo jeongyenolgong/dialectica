@@ -105,12 +105,12 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261014-4"></script>
-<script src="settings.js?b=261014-4"></script>
-<script src="data.js?b=261014-4"></script>
+<script src="bus.js?b=261014-7"></script>
+<script src="settings.js?b=261014-7"></script>
+<script src="data.js?b=261014-7"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261014-6"></script>
-<script src="sphere.js?b=261013-3"></script>
+<script src="sphere.js?b=261014-7"></script>
 </head>
 <body>
 
@@ -161,7 +161,6 @@
       · 리뷰 — 수집 종료 = 리뷰 타임. 많이 고른 단어 5개와 단어마다 가장 먼 답 둘을 여기서 뽑아 장부에 올립니다(buildReview)
       · 수집 — 단어 하나 = 수집 점수 1(모은 개수). 게이지는 DLK.gauges가 셉니다
       ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 결과로 바로 갑니다
-   ⭐ 「모두 100」은 방 평균 막대로 봅니다 — 진행자는 그걸 보고 「다음」을 누릅니다.
    ───────────────────────────────────────────────────────────────────────── */
 const SUR = "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구";
 const GIV = ["서연","지훈","수민","유진","하늘","도윤","서아","재현","지우","소율","준혁","예린",
@@ -198,13 +197,11 @@ const PRESSES = [
 ];
 const ORDER = ["entry","collect","review","pair","result"];
 
-/* 방 평균 — 이름을 낸 사람만 셉니다 */
+/* 방 평균 — 스크린(SC.roomAvg)·결과 화면 「현재」와 같은 셈: 전원의 고른 단어 + 모은 단어를 모아 캐릭터별 개수의 비율 */
 function avg(){
-  const P = people.filter(p => p.named && p.start);
+  const P = people.filter(p => p.named && p.start && p.picks);
   if(!P.length) return null;
-  const s = [0,0,0], n = P.length;
-  P.forEach(p => { const g = gOf(p); g.forEach((v,i) => s[i] += v); });
-  return {g:s.map(v => Math.round(v/n))};
+  return {g:DLK.gauges(P.flatMap(p => p.picks.concat(p.got.map(x => x.w))), [])};
 }
 
 /* 사람 옆 숫자 — 그 단계에서 세는 것 */

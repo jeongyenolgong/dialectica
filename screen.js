@@ -92,13 +92,13 @@
       });
     };
   }
-  /* 방 평균 — 이름을 낸 사람만 */
+  /* 방 평균 — 결과 화면 「현재」와 같은 셈: 이름을 내고 다섯을 고른 사람 전원의 고른 단어 + 모은 단어를 한데 모아
+     캐릭터별 개수의 비율(DLK.pct). 2026.10.14 사용자 "그래"(결과 화면과 같은 방식으로) */
   function roomAvg(b) {
-    const P = (b.players || []).filter(p => p.name && p.g);
+    const P = (b.players || []).filter(p => p.name && p.start && p.picks);
     if (!P.length) return null;
-    const s = [0, 0, 0];
-    P.forEach(p => p.g.forEach((v, i) => s[i] += v));
-    return { g: s.map(v => Math.round(v / P.length)), n: P.length };
+    const words = P.flatMap(p => p.picks.concat((p.got || []).map(x => x.w)));
+    return { g: window.DLK.gauges(words, []), n: P.length };
   }
 
   window.SC = { MS, K, sizes, flip, cells, line, top3, bars, roomAvg };

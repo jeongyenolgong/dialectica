@@ -1,4 +1,4 @@
-/* 디알렉티카 설정 — 디알렉티카_설정_261014_3.xlsx 에서 build_settings.py 가 만든 파일 (2026.10.14 13:16).
+/* 디알렉티카 설정 — 디알렉티카_설정_261014_4.xlsx 에서 build_settings.py 가 만든 파일 (2026.10.14 13:30).
    ⛔ 직접 고치지 마세요 — 엑셀을 고치고 다시 만듭니다. */
 window.DLK_SET = {
  "chars": [
@@ -211,7 +211,6 @@ window.DLK_SET = {
   "collect.already": "이미 모은 단어예요",
   "collect.answer_empty": "답을 입력하세요",
   "collect.same_as_word": "다시 써 보세요",
-  "collect.outside": "아직 지도에 없는 말",
   "collect.empty_list": "아직 모은 단어가 없습니다",
   "collect.rank_toast": "현재 {n}위",
   "rc.not_found": "없는 코드",

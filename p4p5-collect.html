@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>디알렉티카 — 단어 수집</title>
 <link rel="stylesheet" href="font.css?b=261007-1">
-<link rel="stylesheet" href="phone.css?b=261012-1">
+<link rel="stylesheet" href="phone.css?b=261014-7">
 <style>
   #prog{font-size:18px; color:var(--line); letter-spacing:.04em; text-decoration:underline;
         text-underline-offset:5px; cursor:pointer; margin-bottom:22px}
@@ -20,19 +20,18 @@
   #sWord{font-size:26px; line-height:1.2}
   #cv{display:block; width:100%; max-width:340px; aspect-ratio:1/1; margin-top:4px}
   #sMine{font-size:22px; color:#5FE6B0; letter-spacing:.03em; word-break:keep-all; text-align:center}
-  #sOut{font-size:13px; color:var(--line); margin-top:6px; letter-spacing:.04em; min-height:16px}
   #gainN{font-size:40px; line-height:1; margin-top:10px; color:var(--gc)}
   #gainC{font-size:20px; margin-top:6px; color:var(--gc)}
   #okS{margin-top:16px}
   .done-note{font-size:18px; color:var(--line); margin-top:24px; text-align:center}
 </style>
-<script src="bus.js?b=261014-4"></script>
-<script src="settings.js?b=261014-4"></script>
-<script src="data.js?b=261014-4"></script>
-<script src="phone.js?b=261007-1"></script>
+<script src="bus.js?b=261014-7"></script>
+<script src="settings.js?b=261014-7"></script>
+<script src="data.js?b=261014-7"></script>
+<script src="phone.js?b=261014-7"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261014-6"></script>
-<script src="sphere.js?b=261013-3"></script>
+<script src="sphere.js?b=261014-7"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
@@ -92,7 +91,6 @@
         <div id="sWord"></div>
         <canvas id="cv"></canvas>
         <p id="sMine"></p>
-        <p id="sOut"></p>
         <p id="gainN"></p>
         <p id="gainC"></p>
         <button class="btn" id="okS" data-t="common.ok"></button>
@@ -187,12 +185,11 @@ function collect(x, a){
   const C = DLK.CHARS[x.ch];
   /* 거리 구 — 내 답의 자리. 판정은 없고, 지도 밖(어휘에 없는 말)이면 껍질 바깥에 놓입니다 */
   SPHERE.poster(x.w);
-  const r = SPHERE.place(a);
+  SPHERE.place(a);
   PH.clear(); show("vS");
   $("#vS").style.setProperty("--gc", C.color);
   $("#sWord").innerHTML = `<span class="je">${DLK.esc(x.w)}</span>`;
   $("#sMine").textContent = a;
-  $("#sOut").textContent = r.outside ? DLK.T("collect.outside") : "";
   $("#gainN").textContent = "+";
   $("#gainC").textContent = C.ko;
   gs.set(s1.g);
