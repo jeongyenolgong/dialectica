@@ -2,12 +2,12 @@
    bus.js — 모두가 같은 장부 한 권을 본다
 
    **장부(book)** — 지금 판의 전부. 진행자 화면만 적고, 나머지는 읽기만 한다.
-       { press: 0~7, players: [ {id, name, code, picks:[5], start:[3], got:[{w,a}], ...} ], review:{list, i} }
+       { press: 0~5, players: [ {id, name, code, picks:[5], start:[3], got:[{w,a,n}], cnt, g:[3], at} ],
+         picks, words, review:{list, i, top}, pair:{list, i}, gen, gid, ack }
    **말(say)** — 스쳐 지나가는 한마디. 누구나 보낸다. 장부에 남지 않는다.
        {join:{id}} · {name:{id, name}} · {pick:{id, words}} · {collect}
    폰은 「나를 넣어 주세요」라고 말하고, **진행자 화면이 받아 적어 장부에 올린다.**
    출발 비율과 개인 코드가 한 곳에서 나와야 겹치지 않는다.
-   ⭐ 2026.10.07 — 팀이 없어졌습니다. 전부 개인전입니다.
 
    ⭐ 장부를 어디에 두느냐가 셋이고 **스스로 고른다**
      ① 노트북       `server.py`가 켜져 있을 때. 인터넷 없이 돈다. 워크숍 당일용
