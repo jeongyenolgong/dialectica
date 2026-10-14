@@ -23,7 +23,6 @@
   #sOut{font-size:13px; color:var(--line); margin-top:6px; letter-spacing:.04em; min-height:16px}
   #gainN{font-size:40px; line-height:1; margin-top:10px; color:var(--gc)}
   #gainC{font-size:20px; margin-top:6px; color:var(--gc)}
-  #gainNote{margin-top:8px}
   #okS{margin-top:16px}
   .done-note{font-size:18px; color:var(--line); margin-top:24px; text-align:center}
 </style>
@@ -52,7 +51,6 @@
   </div>
   <div class="strip" id="strip"></div>
   <main>
-    <div id="flash"></div>
     <div id="toast"></div>
 
     <!-- ① 단어 입력 -->
@@ -97,7 +95,6 @@
         <p id="sOut"></p>
         <p id="gainN"></p>
         <p id="gainC"></p>
-        <p class="sub" id="gainNote"></p>
         <button class="btn" id="okS" data-t="common.ok"></button>
       </div>
     </section>
@@ -148,7 +145,7 @@ $("#okW").onclick = () => PH.commit($("#inW"), raw => {
   const hit = DLK.findWord(raw);
   /* ⭐ 틀려도 잃는 것이 없습니다 — 오답과 오타를 가르지 않고, 횟수 제한도 없습니다 */
   if(!hit){ sayW(DLK.T("collect.no_match")); PH.shake($("#fW")); return; }
-  if(st().words.some(p => p.w === hit.w)){ sayW(DLK.T("collect.already")); PH.blink($("#drawerBtn")); return; }
+  if(st().words.some(p => p.w === hit.w)){ sayW(DLK.T("collect.already")); return; }
   cur = hit;
   $("#fW").style.background = "var(--name)";          /* 맞음 — 칸이 흰색으로 물듭니다 */
   setTimeout(() => { $("#fW").style.background = ""; toCond(); }, 180);
@@ -178,7 +175,6 @@ $("#okC").onclick = () => PH.commit($("#inC"), raw => {
 function collect(x, a){
   const s0 = st();
   if(s0.words.some(p => p.w === x.w)) return toWord(true);   /* 두 번 누름 */
-  const before = s0.g ? s0.g[x.ch] : null;
   const nth = s0.words.length + 1;
   const mine = PH.load("dlk.pairs." + ME, []);
   mine.push({w:x.w, a, n:nth});
@@ -188,7 +184,6 @@ function collect(x, a){
                b => ((((b.ack||{})[ME]||{}).p)||[]).includes(nth));
 
   const s1 = st();
-  const after = s1.g ? s1.g[x.ch] : null;
   const C = DLK.CHARS[x.ch];
   /* 거리 구 — 내 답의 자리. 판정은 없고, 지도 밖(어휘에 없는 말)이면 껍질 바깥에 놓입니다 */
   SPHERE.poster(x.w);
@@ -198,13 +193,9 @@ function collect(x, a){
   $("#sWord").innerHTML = `<span class="je">${DLK.esc(x.w)}</span>`;
   $("#sMine").textContent = a;
   $("#sOut").textContent = r.outside ? DLK.T("collect.outside") : "";
-  const full = before != null && before >= DLK.FULL;
-  $("#gainN").textContent = full ? "FULL" : `+${DLK.STEP}`;
+  $("#gainN").textContent = "+";
   $("#gainC").textContent = C.ko;
-  $("#gainNote").textContent = full ? DLK.T("collect.gauge_full_already") : (after >= DLK.FULL ? DLK.T("collect.gauge_full_now") : "");
-  PH.flash();
-  gs.set(s1.g); gs.pulse(x.ch);
-  PH.blink($("#drawerBtn"));
+  gs.set(s1.g);
   SPHERE.start();
 }
 $("#okS").onclick = () => { SPHERE.stop(); toWord(true); };

@@ -21,7 +21,7 @@
   const CHARS = SET.chars;
   const COND = SET.cond;
   const WORDS = SET.words;
-  const STEP = SET.nums.STEP, FULL = SET.nums.FULL;
+  const FULL = SET.nums.FULL;
   /* 문구 — T(열쇠, {n: 3}) → 엑셀 「문구」 시트의 글. 없는 열쇠는 ⟨열쇠⟩로 보여 바로 눈에 띕니다 */
   const TEXT = SET.text || {};
   const T = (k, v) => (k in TEXT ? TEXT[k] : "⟨" + k + "⟩").replace(/\{(\w+)\}/g, (_, n) => v && n in v ? v[n] : "");
@@ -35,7 +35,6 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => fillText());
   else fillText();
   const PICK_N = SET.nums.PICK_N;       /* 고르는 수 = 판 수 */
-  const PICK_STEP = FULL / PICK_N;      /* 고른 단어 하나가 그 캐릭터 비율에 더하는 양 = 20 */
   function seeded(seed) {
     let h = 2166136261;
     for (const ch of String(seed || "")) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); }
@@ -50,22 +49,24 @@
     return Array.from({ length: PICK_N }, (_, i) =>
       shuffled(byCh.flatMap(list => list.slice(i * per, (i + 1) * per)), r));
   }
-  /* 고른 5개 → 세 캐릭터 비율. 모르는 단어는 세지 않습니다 */
-  function startFrom(picks) {
-    const g = CHARS.map(() => 0);
-    (picks || []).forEach(w => { const x = WORDS.find(o => o.w === w); if (x) g[x.ch] += PICK_STEP; });
-    return g;
+  /* 비율 — 개수를 FULL(100) 나눔으로, 반올림한 셋의 합이 꼭 FULL이 되게(나머지가 큰 순으로 1씩) */
+  function pct(n) {
+    const t = n.reduce((a, v) => a + v, 0); if (!t) return n.map(() => 0);
+    const raw = n.map(v => v * FULL / t), out = raw.map(Math.floor);
+    raw.map((v, i) => [v - out[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1])
+       .slice(0, FULL - out.reduce((a, v) => a + v, 0)).forEach(([, i]) => out[i]++);
+    return out;
   }
-
-  /* 내 게이지 — 출발값 + 모은 단어마다 +20, 100에서 멈춤 */
-  function gauges(start, words) {
-    const g = (start || [0, 0, 0]).slice();
-    (words || []).forEach(w => {
-      const x = WORDS.find(o => o.w === w);
-      if (x) g[x.ch] = Math.min(FULL, g[x.ch] + STEP);
-    });
-    return g;
+  /* 캐릭터별 단어 개수. 모르는 단어는 세지 않습니다 */
+  function countOf(words) {
+    const n = CHARS.map(() => 0);
+    (words || []).forEach(w => { const x = WORDS.find(o => o.w === w); if (x) n[x.ch]++; });
+    return n;
   }
+  /* 고른 5개 → 세 캐릭터 비율 */
+  const startFrom = picks => pct(countOf(picks));
+  /* 내 게이지 — 고른 5개 + 모은 단어의 캐릭터별 개수를 비율로. 결과 화면과 같은 셈, 상한 없음 (2026.10.14 사용자 "결과화면의 처리 방식과 동일하게") */
+  const gauges = (picks, words) => pct(countOf((picks || []).concat(words || [])));
 
   /* ── 천지인 자판 ─────────────────────────────────────────────────
      천지인은 「ㆍ」 점과 덜 조합된 자모를 거쳐 글자를 만듭니다.
@@ -121,7 +122,7 @@
 
 
   window.DLK = {
-    CHARS, COND, WORDS, STEP, FULL, PICK_N, PICK_STEP,
-    pickRounds, startFrom, gauges, tidy, tidyWord, findWord, sameAsWord, esc, T, fillText,
+    CHARS, COND, WORDS, FULL, PICK_N,
+    pickRounds, pct, startFrom, gauges, tidy, tidyWord, findWord, sameAsWord, esc, T, fillText,
   };
 })();

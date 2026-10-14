@@ -57,7 +57,6 @@
   .board li .num{margin-left:auto; font-variant-numeric:tabular-nums; letter-spacing:.02em; color:var(--dim)}
   .board li .num b{color:var(--fg); font-weight:400}
   .board li.miss{opacity:.16}
-  .board li.done .num b{text-decoration:underline; text-underline-offset:4px}
 
   /* ── 리뷰 타임 — 많이 고른 단어 5개. 진행자가 하나씩 넘깁니다 (2026.10.13) ── */
   .review{display:flex; flex-direction:column; gap:6px; padding:10px 16px}
@@ -185,7 +184,7 @@ let pair = null;                 /* 짝 — {list:[{ids,names,w,ans,d,n,avg}], i
 function newGid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 다시 말하기를 그칩니다 */
 
-const gOf  = p => DLK.gauges(p.start, p.got.map(x => x.w));
+const gOf  = p => DLK.gauges(p.picks, p.got.map(x => x.w));
 
 /* ── 「다음」 네 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제 · 2026.10.14 짝 단계 추가) ── */
 const PRESSES = [
@@ -215,7 +214,6 @@ function personNum(p){
     return `${DLK.T("h.got_count", {n:`<b>${p.got.length}</b>`})} &nbsp; ${g.join(" · ")}`; }
   return "";
 }
-const isDone = p => stage === "collect" ? gOf(p).every(v => v >= DLK.FULL) : false;
 
 const board = document.getElementById("board");
 const hero  = document.getElementById("hero");
@@ -261,7 +259,6 @@ function row(p){
   li.dataset.id = p.id; li.dataset.name = p.name;
   li.innerHTML = `<span>${DLK.esc(p.name)}</span><span class="code">${p.code}</span>`
                + `<span class="num">${personNum(p)}</span>`;
-  li.classList.toggle("done", isDone(p));
   /* 이름 클릭 → 개인 코드 6자리 (재접속을 도울 때 읽어 줍니다 · 6.11) */
   li.onclick = () => li.classList.toggle("open");
   return li;
@@ -271,7 +268,6 @@ function bump(p){
   const li = board.querySelector(`li[data-id="${p.id}"]`);
   if(li){
     li.querySelector(".num").innerHTML = personNum(p);
-    li.classList.toggle("done", isDone(p));
     li.classList.remove("new"); void li.offsetWidth; li.classList.add("new");
   }
   drawHero(); gauge();

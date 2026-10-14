@@ -79,7 +79,7 @@
     const start = (me && me.start) || null;
     return {
       me, start, words,
-      g: start ? D.gauges(start, words.map(p => p.w)) : null,
+      g: start && me.picks ? D.gauges(me.picks, words.map(p => p.w)) : null,
     };
   }
 
@@ -97,14 +97,9 @@
         const v = vals[i];
         row.querySelector(".v").textContent = v == null ? "" : v;
         [...row.querySelectorAll(".bar i")].forEach((b, k) => b.classList.toggle("on", v != null && v >= (k + 1) * 10));
-        row.classList.toggle("full", v != null && v >= D.FULL);
       });
     };
-    const pulse = i => {
-      const row = el.children[i]; if (!row) return;
-      row.classList.remove("pulse"); void row.offsetWidth; row.classList.add("pulse");
-    };
-    return { set, pulse };
+    return { set };
   }
 
   /* ── 알림 띠 ── */
@@ -118,15 +113,8 @@
   }
   const hideToast = () => { const t = document.getElementById("toast"); if (t) t.classList.remove("on"); };
 
-  function blink(el) {
-    [0, 1, 2, 3].forEach(i => setTimeout(() => el.classList.toggle("flash", i % 2 === 0), i * 90));
-  }
   function shake(el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
-  function flash() {
-    const f = document.getElementById("flash"); if (!f) return;
-    f.style.display = "block"; setTimeout(() => f.style.display = "none", 60);
-  }
 
   window.PH = { touch, size, later, clear, typeOut, commit, load, save, state, strip,
-                toast, hideToast, blink, shake, flash };
+                toast, hideToast, shake };
 })();

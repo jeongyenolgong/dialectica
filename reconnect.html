@@ -39,7 +39,6 @@
 <div class="phone">
   <div class="head"><span class="ttl">디알렉티카</span></div>
   <main>
-    <div id="flash"></div>
     <section class="view on">
       <div class="mid">
         <p class="guide" id="guide"></p>
@@ -98,7 +97,6 @@ function enter(){
   /* 이 폰에 그 사람의 이름표를 붙입니다 — 폰 쪽지는 장부에서 다시 채웁니다 */
   Bus.becomeMe(who.id);
   PH.save("dlk.pairs." + who.id, who.got || []);
-  PH.flash();
   PH.typeOut($("#welcome"), DLK.T("rc.welcome", {name:who.name}), 60, () => $("#nextBtn").style.visibility = "visible");
   $("#pad").style.visibility = "hidden";
 }
