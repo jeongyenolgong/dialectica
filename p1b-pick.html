@@ -22,16 +22,16 @@
         letter-spacing:.02em; text-align:center; line-height:1.6}
   #done span{white-space:nowrap}
 </style>
-<script src="bus.js?b=261014-9"></script>
+<script src="bus.js?b=261014-10"></script>
 <script src="settings.js?b=261014-7"></script>
-<script src="data.js?b=261014-7"></script>
+<script src="data.js?b=261014-10"></script>
 <script src="phone.js?b=261014-7"></script>
 </head>
 <body>
 <!-- ─────────────────────────────────────────────────────────────────────
      P1b 고르기 — 이름 다음, 내 상태 전 (2026.10.13 사용자)
      「30개 중 5개를 고르는 화면은 한 화면에 6개의 단어씩 보여주고 하나를 선택하라고 할거야.」
-     · 다섯 판 × 여섯 단어(캐릭터마다 둘씩) — 판은 DLK.pickRounds(내 이름표)가 짭니다. 다시 열어도 같은 판.
+     · 다섯 판 × 여섯 단어(캐릭터마다 둘씩) — 판은 DLK.pickRounds()가 짭니다. 모든 사람이 같은 판.
      · 하나를 누르면 칩이 반전되고 다음 판. 번쩍임 없음. 되돌리기 없음(조작 최소).
      · 고른 단어는 아래에 쌓입니다 — 줄은 단어 사이에서만 바뀌고 단어 안에서는 안 바뀝니다.
      · 다 고르면 곧장 내 상태(P2)로. 「잠시만 기다려 주세요」는 결과를 본 뒤 대기 화면(P3)에서만(2026.10.13 사용자).
@@ -55,7 +55,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const ME = Bus.me();
-const ROUNDS = DLK.pickRounds(ME);
+const ROUNDS = DLK.pickRounds();
 const K = "dlk.picks." + ME;
 let picks = PH.load(K, []).filter(w => DLK.WORDS.some(o => o.w === w)).slice(0, DLK.PICK_N);
 let gone = false, locked = false;

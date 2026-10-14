@@ -41,12 +41,21 @@
     return () => (x = (x * 1664525 + 1013904223) >>> 0) / 4294967296;
   }
   const shuffled = (arr, r) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function pickRounds(seed) {
-    const r = seeded(seed);
+  /* 다섯 판 × 여섯 단어 — **모든 사람이 같은 판을 같은 순서로** 봅니다(2026.10.14 사용자 「판마다 나오는 여섯 단어가 사람마다 동일한 것으로」).
+     그래서 씨앗은 사람과 상관없는 고정값입니다. */
+  function pickRounds() {
+    const r = seeded("dialectica");
     const byCh = CHARS.map((_, k) => shuffled(WORDS.filter(x => x.ch === k).map(x => x.w), r));
     const per = Math.floor(WORDS.length / CHARS.length / PICK_N);     /* 캐릭터마다 한 판에 몇 개 = 2 */
-    return Array.from({ length: PICK_N }, (_, i) =>
-      shuffled(byCh.flatMap(list => list.slice(i * per, (i + 1) * per)), r));
+    /* 배치 — 세 캐릭터를 고루(사용자 「여섯 단어의 배치는 3가지 캐릭터를 골고루」).
+       캐릭터 순서 a·b·c를 판마다 섞어 a b c a b c 로 놓으면, 두 칸씩 세 줄인 화면에서
+       (a b)(c a)(b c) — 한 줄에 같은 캐릭터가 둘 오지 않고, 세로 한 줄에 세 캐릭터가 다 들어갑니다. */
+    return Array.from({ length: PICK_N }, (_, i) => {
+      const order = shuffled(CHARS.map((_, k) => k), r);
+      const out = [];
+      for (let j = 0; j < per; j++) order.forEach(k => out.push(byCh[k][i * per + j]));
+      return out;
+    });
   }
   /* 비율 — 개수를 FULL(100) 나눔으로, 반올림한 셋의 합이 꼭 FULL이 되게(나머지가 큰 순으로 1씩) */
   function pct(n) {

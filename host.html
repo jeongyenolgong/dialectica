@@ -105,9 +105,9 @@
   footer button{font-size:12px; background:transparent; color:var(--line); border:1px solid var(--line); padding:3px 9px}
   footer button[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
 </style>
-<script src="bus.js?b=261014-9"></script>
+<script src="bus.js?b=261014-10"></script>
 <script src="settings.js?b=261014-7"></script>
-<script src="data.js?b=261014-7"></script>
+<script src="data.js?b=261014-10"></script>
 <script src="sphere-table.js?b=261012-7"></script>
 <script src="sphere-lookup.js?b=261014-6"></script>
 <script src="sphere.js?b=261014-7"></script>
@@ -561,7 +561,7 @@ function addMocks(n){
       if(p) later(() => {
         nameReal(p.id, nameAt(k));
         /* 판마다 하나씩 — 진짜 폰과 같은 판(DLK.pickRounds)에서 고릅니다 */
-        later(() => pickReal(p.id, DLK.pickRounds(p.id).map(r => pick(r))), 600 + Math.random()*2000);
+        later(() => pickReal(p.id, DLK.pickRounds().map(r => pick(r))), 600 + Math.random()*2000);
       }, 400 + Math.random()*1600);
     }, i * (120 + Math.random()*200));
   }
