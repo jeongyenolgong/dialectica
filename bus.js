@@ -17,7 +17,7 @@
    화면 대응표는 이 파일 한 곳에만 있다. 흩어 두면 어긋난다.
    ───────────────────────────────────────────────────────────────────────── */
 (() => {
-  const BUILD  = "261014-8";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
+  const BUILD  = "261014-9";     /* 화면마다 조작줄에 뜹니다 — 폰이 옛 것을 물고 있는지 가릅니다 */
   const K_BOOK = "dlk.book", K_SAY = "dlk.say";
   const ROOM   = new URLSearchParams(location.search).get("room") || "nolgong";
   const BROKER = "wss://broker.emqx.io:8084/mqtt";
@@ -49,6 +49,22 @@
     : here === "reconnect.html"   ? null   /* 재접속은 코드부터 받는 화면이라 끌고 가지 않는다 */
     : /^p\d/.test(here)           ? "phone"
     : null;
+
+  /* ⭐ 시작 QR로 들어오면(입장 화면 + ?v=) 이 폰에 남은 기록을 지우고 처음부터 시작합니다.
+     화면끼리 옮겨 다닐 때는 ?v= 가 붙지 않으므로 QR을 찍었을 때만 지워집니다.
+     지운 뒤 주소에서 ?v= 를 떼어, 입장 화면에서 새로고침해도 다시 지워지지 않게 합니다. */
+  if (here === "p1-identity.html" && new URLSearchParams(location.search).has("v")) {
+    try {
+      Object.keys(localStorage)
+        .filter(k => k === "dlk.me" || k === "dlk.round" || /^dlk\.(picks|pairs|sents)\./.test(k))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete("v");
+      history.replaceState(null, "", url.pathname + url.search + url.hash);
+    } catch (e) {}
+  }
 
   /* ⭐ 목업 전용 조작줄은 **폰에서만** 감춥니다 — 참가자가 보는 화면입니다.
      진행자 화면과 스크린은 그대로 둡니다(진행자가 계기판으로 씁니다).
