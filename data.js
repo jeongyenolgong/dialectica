@@ -35,7 +35,6 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => fillText());
   else fillText();
   const PICK_N = SET.nums.PICK_N;       /* 고르는 수 = 판 수 */
-  const PAIR_K = SET.nums.PAIR_K;       /* 짝짓기 — 겹침이 이 수면 잰 거리가 방 평균 쪽으로 절반쯤 당겨짐 */
   const PICK_STEP = FULL / PICK_N;      /* 고른 단어 하나가 그 캐릭터 비율에 더하는 양 = 20 */
   function seeded(seed) {
     let h = 2166136261;
@@ -122,7 +121,7 @@
 
 
   window.DLK = {
-    CHARS, COND, WORDS, STEP, FULL, PICK_N, PICK_STEP, PAIR_K,
+    CHARS, COND, WORDS, STEP, FULL, PICK_N, PICK_STEP,
     pickRounds, startFrom, gauges, tidy, tidyWord, findWord, sameAsWord, esc, T, fillText,
   };
 })();

@@ -1,4 +1,4 @@
-/* 디알렉티카 설정 — 디알렉티카_설정_261014.xlsx 에서 build_settings.py 가 만든 파일 (2026.10.13 21:28).
+/* 디알렉티카 설정 — 디알렉티카_설정_261014_2.xlsx 에서 build_settings.py 가 만든 파일 (2026.10.14 13:04).
    ⛔ 직접 고치지 마세요 — 엑셀을 고치고 다시 만듭니다. */
 window.DLK_SET = {
  "chars": [
@@ -182,8 +182,7 @@ window.DLK_SET = {
  "nums": {
   "STEP": 20,
   "FULL": 100,
-  "PICK_N": 5,
-  "PAIR_K": 3
+  "PICK_N": 5
  },
  "text": {
   "common.wait": "잠시만 기다려 주세요",
@@ -290,7 +289,7 @@ window.DLK_SET = {
   "h.pair.stat": "겹침 {n}장 · 거리 {d}",
   "h.pair.prev": "이전 짝",
   "h.pair.next": "다음 짝",
-  "h.pair.note": "스크린에 지금 짝이 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다. 방 평균 거리 {m} · 당김 {k}장",
+  "h.pair.note": "스크린에 지금 짝이 떠 있습니다. 줄을 누르거나 버튼으로 넘깁니다.",
   "h.new_game": "새 판을 열었습니다",
   "h.resumed": "장부를 이어받음 · {n}명"
  }

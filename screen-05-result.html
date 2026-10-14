@@ -79,26 +79,29 @@ function pct(n){
   return out;
 }
 let key = null, timers = [];
-function fill(row, v, delay){
+/* 막대 — 여섯 줄 가운데 가장 큰 비율(top)이 20칸을 꽉 채우고, 나머지는 그에 비례합니다(2026.10.14 사용자 "꽉 채운 길이로 맞춰").
+   숫자는 비율 그대로입니다 */
+function fill(row, v, delay, top){
   const cells = [...row.querySelectorAll(".cells i")];
   cells.forEach(c => c.classList.remove("on"));
   row.querySelector(".v").textContent = "";
   if(v == null) return;
-  cells.forEach((c, k) => { if(v >= (k+1)*5) timers.push(setTimeout(() => c.classList.add("on"), delay + k*45)); });
-  timers.push(setTimeout(() => { row.querySelector(".v").textContent = v; }, delay + Math.ceil(v/5)*45));
+  const on = top > 0 ? Math.round(v / top * cells.length) : 0;
+  cells.forEach((c, k) => { if(k < on) timers.push(setTimeout(() => c.classList.add("on"), delay + k*45)); });
+  timers.push(setTimeout(() => { row.querySelector(".v").textContent = v; }, delay + on*45));
 }
 function render(b){
   const n = counts(b);
   $("#idle").style.display = n ? "none" : "flex";
   $("#main").hidden = !n;
   if(!n) return;
-  const was = pct(n.was), now = pct(n.now);
+  const was = pct(n.was), now = pct(n.now), top = Math.max(...was, ...now);
   const k = n.was.join(",") + "|" + n.now.join(",");
   if(k === key) return; key = k;
   timers.forEach(clearTimeout); timers = [];
   [...$("#cmp").children].forEach((el, i) => {
-    fill(el.querySelector(".row.was"), was[i], 200);
-    fill(el.querySelector(".row.now"), now[i], 1600);
+    fill(el.querySelector(".row.was"), was[i], 200, top);
+    fill(el.querySelector(".row.now"), now[i], 1600, top);
   });
 }
 Bus.onState(render);

@@ -181,7 +181,7 @@ let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타�
 let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
 let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
 let seq = 0, gen = 0, gid = newGid();
-let pair = null;                 /* 짝 — {list:[{ids,names,w,ans,d}], i, k, m} (2026.10.14) */
+let pair = null;                 /* 짝 — {list:[{ids,names,w,ans,d,n,avg}], i} (2026.10.14) */
 function newGid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 다시 말하기를 그칩니다 */
 
@@ -355,8 +355,8 @@ function setReview(i){
    사용자 "플레이어들이 입력한 단어들만 가지고 거리를 재면 ... 이걸 30개의 포스터를 반복하면 평균값이 나오지 않아?"
    · 포스터마다 두 사람의 답 사이 거리(구 위 자리의 거리, 리뷰와 같은 잣대)를 재고, 같이 적은 포스터에 걸쳐 평균.
    · 사용자 "30명이 30단어를 다 입력하는 경우도 있고 그렇지 않을 수도 있어 이 변수를 계산해야 해."
-     → 같이 적은 포스터 수 n이 적을수록 방 평균 m 쪽으로 당깁니다: (n·d + k·m)/(n+k), k = DLK.PAIR_K.
-       겹침 0이면 정확히 m(중립). 지도 밖 답은 n에서 뺍니다.
+     → 둘 다 적은 포스터만 셉니다. 사용자 "평범한 3장 넣지말고 플레이어가 입력한 것만 가지고 할 수는 없어?"
+       → "응 그렇게 하자." (10.14) 순수 평균 d로 줄 세웁니다. 겹침 0이면 d = 0이라 맨 뒤. 지도 밖 답은 n에서 뺍니다.
    · 가장 먼 쌍부터 차례로 확정, 홀수면 마지막 한 사람을 **가장 먼 쌍**에 붙여 셋(10.12 놀공 답).
    · 발표: 사용자 "두 사람의 입력한 단어의 거리값이 가장 먼 포스터 단어와 함께 구 이미지" → 팀마다 그 포스터 하나.
      셋이면 세 사람 중 가장 먼 두 답의 포스터에 셋째 답도 같은 구에(안 적었으면 이름만). 사용자 "좋아. 진행해보자."
@@ -370,16 +370,13 @@ function buildPairs(){
   const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
   /* 쌍마다 — 같이 적은 포스터의 거리들 */
   const pairs = [];
-  let sum = 0, cnt = 0;
   for(let i = 0; i < P.length; i++) for(let j = i + 1; j < P.length; j++){
     const per = [];
-    Object.keys(pos[i]).forEach(w => { if(pos[j][w]){ const d = dist(pos[i][w].q, pos[j][w].q); per.push({w, d}); sum += d; cnt++; } });
+    Object.keys(pos[i]).forEach(w => { if(pos[j][w]){ const d = dist(pos[i][w].q, pos[j][w].q); per.push({w, d}); } });
     const n = per.length, d = n ? per.reduce((s, x) => s + x.d, 0) / n : 0;
     pairs.push({i, j, n, d, per});
   }
-  const m = cnt ? sum / cnt : 0, k = DLK.PAIR_K;
-  pairs.forEach(x => { x.adj = (x.n * x.d + k * m) / (x.n + k); });
-  pairs.sort((a, b) => b.adj - a.adj || b.n - a.n || a.i - b.i || a.j - b.j);
+  pairs.sort((a, b) => b.d - a.d || b.n - a.n || a.i - b.i || a.j - b.j);
   const used = new Set(), teams = [];
   pairs.forEach(x => { if(used.has(x.i) || used.has(x.j)) return; used.add(x.i); used.add(x.j); teams.push([x.i, x.j]); });
   const left = P.map((_, i) => i).filter(i => !used.has(i));
@@ -397,9 +394,9 @@ function buildPairs(){
     const ans = t.map(i => ({ name:P[i].name, a: w && pos[i][w] ? pos[i][w].a : ((P[i].got || []).find(x => x.w === w) || {}).a || null }));
     const x2 = t.length >= 2 ? byIJ[Math.min(t[0], t[1]) + "," + Math.max(t[0], t[1])] : null;
     return { ids:t.map(i => P[i].id), names:t.map(i => P[i].name), w, d: best ? best.d : null, ans,
-             n: x2 ? x2.n : 0, adj: x2 ? x2.adj : null };
+             n: x2 ? x2.n : 0, avg: x2 ? x2.d : null };
   });
-  pair = {list, i:0, k, m};
+  pair = {list, i:0};
   sync();
 }
 function drawPairs(){
@@ -413,11 +410,11 @@ function drawPairs(){
       + `<span class="k">${k + 1}</span><span class="w">${t.names.map(DLK.esc).join(" · ")}</span>`
       + `<span class="k">${t.w ? DLK.esc(t.w) : DLK.T("h.pair.no_word")}</span>`
       + `<span class="far">${t.ans.map(x => `<span><b>${DLK.esc(x.name)}</b> ${x.a == null ? DLK.T("h.pair.not_written") : DLK.esc(x.a)}</span>`).join("")}`
-      + `<span>${DLK.T("h.pair.stat", {n:t.n, d:f(t.adj)})}</span></span></div>`).join("");
+      + `<span>${DLK.T("h.pair.stat", {n:t.n, d:f(t.avg)})}</span></span></div>`).join("");
   board.innerHTML = `<div class="review">${rows}<div class="nav">`
     + `<button id="prPrev" ${pair.i <= 0 ? "disabled" : ""}>${DLK.T("h.pair.prev")}</button>`
     + `<button id="prNext" ${pair.i >= pair.list.length - 1 ? "disabled" : ""}>${DLK.T("h.pair.next")}</button></div>`
-    + `<p class="note">${DLK.T("h.pair.note", {m:f(pair.m), k:pair.k})}</p></div>`;
+    + `<p class="note">${DLK.T("h.pair.note")}</p></div>`;
   board.querySelectorAll(".rw").forEach(el => el.onclick = () => setPair(+el.dataset.k));
   document.getElementById("prPrev").onclick = () => setPair(pair.i - 1);
   document.getElementById("prNext").onclick = () => setPair(pair.i + 1);
