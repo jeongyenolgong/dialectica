@@ -3,7 +3,7 @@
 #           + 국립국어원 「한국어 학습용 어휘 목록」(2003, 공공누리 제1유형)
 #   영어:   NGSL · NAWL · BSL · TSL (newgeneralservicelist.com, CC BY-SA 4.0)
 #   모델:   intfloat/multilingual-e5-small (MIT) — ONNX
-#   실행:   python make_sphere_table.py <내려받은폴더> data.js sphere-table.js <모델폴더> "query: "
+#   실행:   python make_sphere_table.py <내려받은폴더> settings.js sphere-table.js <모델폴더> "query: "
 #   내려받은폴더 안: vocab/krdict_words.tsv(extract_krdict.py가 만든 것) · vocab/ko8.txt · vocab/{ngsl,nawl,bsl,tsl}.csv
 import sys, re, json, base64, csv, time
 import numpy as np, onnxruntime as ort
@@ -31,7 +31,8 @@ for name in ("ngsl", "nawl", "bsl", "tsl"):
         if w in ("lemma", ""): continue
         if re.fullmatch(r"[a-z]+", w): en.append(w)
 vocab = list(dict.fromkeys(ko + en))
-posters = re.findall(r'\{ w: "([^"]+)"', open(DATAJS, encoding="utf-8").read())
+posters = re.findall(r'"w": "([^"]+)"', open(DATAJS, encoding="utf-8").read())   # 포스터 단어 — settings.js(build_settings.py가 설정 엑셀에서 만든 것)
+assert len(posters) == 30, f"포스터 단어를 {len(posters)}개 읽었습니다 — settings.js를 넘겼는지 보세요"
 assert len(posters) == 30, len(posters)
 print("ko", len(set(ko)), "(krdict", n_krdict, ") en", len(set(en)), "vocab", len(vocab), flush=True)
 
