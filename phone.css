@@ -2,9 +2,8 @@
    phone.css — 참가자 폰 화면이 함께 쓰는 틀 (2026.10.07)
 
    ⭐ 폰에서는 화면을 꽉 채웁니다. 노트북에서 볼 때만 390×844 상자를 가운데 놓고 줄입니다.
-      ⛔ 예전에는 폰에서도 창 높이에 맞춰 화면 전체를 줄였습니다 — 안드로이드는 자판이
-         올라오면 창 높이가 줄어서 **화면 전체가 반쯤으로 쪼그라들었습니다.**
-         이제 자판이 올라오면 내용만 위로 밀립니다(phone.js가 높이를 잽니다).
+      ⛔ 창 높이에 맞춰 화면 전체를 줄이지 말 것 — 안드로이드는 자판이 올라오면 창 높이가 줄어
+         화면 전체가 반쯤으로 쪼그라듭니다. 자판이 올라오면 내용만 위로 밀립니다(phone.js가 높이를 잽니다).
    ⭐ 글자 치는 곳은 전부 화면에 보이는 진짜 입력 칸입니다 — 편집·천지인·붙여넣기가 됩니다.
       ⚠️ 입력 칸 글자는 16px 아래로 내리지 말 것 — iOS가 포커스될 때 화면을 확대합니다.
    ───────────────────────────────────────────────────────────────────────── */
@@ -101,10 +100,10 @@ textarea.box::placeholder{color:var(--line)}
 /* 포스터 단어 — 흰 블록에 배경색으로 글자를 뚫습니다 */
 .je{background:var(--name); color:var(--bg); padding:2px 6px}
 .ban{text-decoration:underline; text-underline-offset:4px; text-decoration-thickness:2px}
-/* hidden 속성이 display 규칙에 지지 않게 — 창작의 문장 칸이 쌍을 고르기 전에 보이던 어긋남(2026.10.12) */
+/* hidden 속성이 display 규칙에 지지 않게 */
 [hidden]{display:none !important}
 
-/* ── 알림 — 위에서 내려왔다 올라갑니다 (6.12) ── */
+/* ── 알림 — 위에서 내려왔다 올라갑니다 ── */
 #toast{position:absolute; left:0; right:0; top:0; z-index:15; padding:14px 12px;
        background:var(--name); color:var(--bg); font-size:22px; text-align:center;
        line-height:1.45; transform:translateY(-100%); transition:transform .18s steps(3);

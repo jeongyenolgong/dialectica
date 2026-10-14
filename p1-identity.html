@@ -41,12 +41,12 @@
 <script>
 const $ = s => document.querySelector(s);
 const ME = Bus.me();
-const MAXLEN = 12;                       /* 6.2 확정 — 최대 12자 */
+const MAXLEN = 12;                       /* 최대 12자 */
 let joined = false, sent = null, gone = false;
 
 PH.typeOut($("#guide"), DLK.T("p1.guide"), 60);
 
-/* ⭐ 이름 규칙(6.2) — 한글·영문·공백만, 12자까지.
+/* ⭐ 이름 규칙 — 한글·영문·공백만, 12자까지.
    ⛔ 치는 동안 칸을 고쳐 쓰지 않습니다 — 천지인 조합이 끊깁니다. 「입장」을 누를 때 한 번만 봅니다 */
 function check(raw){
   const s = DLK.tidy(raw);

@@ -14,7 +14,7 @@
   html,body{height:100%}
   body{
     background:var(--bg); color:var(--fg);
-    /* 8.1 — 본문은 일반 고딕. 이름 30개와 숫자를 하루 종일 봅니다 */
+    /* 본문은 일반 고딕. 이름 30개와 숫자를 하루 종일 봅니다 */
     font-family:"Apple SD Gothic Neo","Pretendard",-apple-system,sans-serif;
     font-size:var(--body); line-height:1.5;
     display:flex; flex-direction:column; overflow:hidden;
@@ -160,7 +160,7 @@
       · 입장 — 개인 코드(6자리 난수)를 여기서 정합니다. 출발 비율은 폰이 고른 5개를 받아 셉니다(DLK.startFrom, 2026.10.13)
       · 리뷰 — 수집 종료 = 리뷰 타임. 많이 고른 단어 5개와 단어마다 가장 먼 답 둘을 여기서 뽑아 장부에 올립니다(buildReview)
       · 수집 — 단어 하나 = 수집 점수 1(모은 개수). 게이지는 DLK.gauges가 셉니다
-      ⛔ 창작·투표 단계는 없앴습니다(2026.10.13 사용자 "창작과 투표 단계 삭제"). 리뷰 → 결과로 바로 갑니다
+      · 흐름 — 입장 → 수집 → 리뷰 → 짝 → 결과 → 종료
    ───────────────────────────────────────────────────────────────────────── */
 const SUR = "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구";
 const GIV = ["서연","지훈","수민","유진","하늘","도윤","서아","재현","지우","소율","준혁","예린",
@@ -177,7 +177,7 @@ const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
 let picks = {};        /* 단어별 고른 수 — 입장 때 5개. 리뷰 타임의 순서 */
 let review = null;     /* 리뷰 타임 — {list:[{w, n, ans:[{name, a, d}], far:[k, k]}], i}. i = -1 이면 5개를 함께 보는 첫 장 */
-let words = {};        /* 단어별 수집 수 — 스크린 9.2 단어 순위 */
+let words = {};        /* 단어별 수집 수 — 스크린 단어 순위 */
 let seq = 0, gen = 0, gid = newGid();
 let pair = null;                 /* 짝 — {list:[{ids,names,w,ans,d,n,avg}], i} (2026.10.14) */
 function newGid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -185,7 +185,7 @@ const ack = {};        /* 받아 적은 말의 번호 — 폰은 이걸 보고 �
 
 const gOf  = p => DLK.gauges(p.picks, p.got.map(x => x.w));
 
-/* ── 「다음」 네 번과 「종료」 한 번 (8.1 · 2026.10.13 창작·투표 삭제 · 2026.10.14 짝 단계 추가) ── */
+/* ── 「다음」 네 번과 「종료」 한 번 ── */
 const PRESSES = [
   /* 문구는 엑셀 「문구」 시트 h.press.* (2026.10.14) */
   {at:"entry",   t:"collect", go:"common.next", act(){ stage = "collect"; runMockCollect(); }},
@@ -279,7 +279,6 @@ function bump(p){
        답이 없는 단어도 목록에 남아 진행자가 고를 수 있고, 스크린엔 「모인 답 없음」이 뜹니다.
    · 가장 먼 둘 — ⭐답과 답 사이의 거리입니다(2026.10.13 사용자 "입력한 단어들 간의 거리가 가장 먼 사람을 골라 보여주는 거야.
      이게 내가 생각하는 원칙이야"). 포스터 단어의 구 안에서 답마다 자리(SPHERE.position)를 받아, 서로 가장 멀리 떨어진 한 쌍을 고릅니다.
-     ⛔포스터 단어에서 먼 순으로 두 명을 고르던 첫 판은 폐기 — 같은 말을 쓴 둘이 「가장 먼 두 사람」으로 뽑혔습니다.
      같은 말은 같은 자리이므로, 고른 쌍과 같은 말을 쓴 사람은 전부 그 점에 함께 섭니다(far에 다 들어감).
      거리가 같으면 먼저 들어온 쌍. 답이 전부 같은 말이면 점 하나.
    · 지도 밖 답(어휘 5만에 없는 말)은 자리를 잴 수 없어 후보에서 뺍니다 — 오타·장난이 먼저 뽑히는 것을 막습니다
@@ -510,7 +509,7 @@ document.getElementById("go").onclick = () => {
   close();
   const P = PRESSES[press++];
   P.act(); draw();
-  Bus.set(press);                 /* 스크린과 참가자 폰이 같은 신호로 따라옵니다 (8.1) */
+  Bus.set(press);                 /* 스크린과 참가자 폰이 같은 신호로 따라옵니다 */
 };
 /* 스크린 — 새 창으로 공용 화면. 사고 복구용이라 **지금 단계**의 화면으로 엽니다 */
 document.getElementById("screenBtn").onclick = () => open(Bus.screenAt(press), "dialectica-screen");
