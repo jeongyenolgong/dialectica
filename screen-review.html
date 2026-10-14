@@ -13,18 +13,20 @@
       align-items:center; padding:2vh 0 1vh}
   .rv .left, .rv .right{display:flex; flex-direction:column; min-width:0}
   .rv .left{align-items:flex-start; gap:3vh}
-  .rv .right{align-items:flex-start; gap:2vh; max-height:72vh}
+  .rv .right{align-items:flex-start; gap:1.6vh; max-height:84vh}
   /* 나머지 사람들 — 14줄씩 세로로 채우고 넘치면 옆 열로(최대 30명 → 두 열). 들어온 순서 */
-  .rest{display:grid; grid-auto-flow:column; grid-template-rows:repeat(14, auto); column-gap:2.5vw; row-gap:.9vh; max-width:100%}
+  /* 14명씩 한 줄, 넘치면 옆 줄로 — 최대 30명 중 먼 둘을 빼면 28명 = 두 줄 (2026.10.14 사용자 「14명씩 한줄이 되면」).
+     맨 위 먼 사람(겹치면 셋 이상)까지 한 화면에 들도록 글자를 --rank보다 조금 작게 */
+  .rest{display:grid; grid-auto-flow:column; grid-template-rows:repeat(14, auto); column-gap:2.5vw; row-gap:.5vh; max-width:100%}
   .rest .p{display:flex; align-items:baseline; gap:.7em; min-width:0; line-height:1.25}
   .rest .nm{flex:0 0 auto; font-size:18px; color:var(--line); letter-spacing:.04em}
-  .rest .a{font-size:var(--rank); word-break:keep-all}
+  .rest .a{font-size:calc(var(--rank) * .75); word-break:keep-all}
   /* 목록 맨 위 — 가장 먼 두 사람(구의 민트 점과 같은 색) (2026.10.14 사용자 「다른 사람들의 이름과 단어가 나오는 부분 맨 위에」) */
-  .far{display:flex; flex-direction:column; gap:.9vh; padding-bottom:1.6vh; border-bottom:1px solid var(--dim); width:100%}
+  .far{display:flex; flex-direction:column; gap:.5vh; padding-bottom:1.2vh; border-bottom:1px solid var(--dim); width:100%}
   .far:empty{display:none}
   .far .p{display:flex; align-items:baseline; gap:.7em; line-height:1.25}
   .far .nm{flex:0 0 auto; font-size:18px; color:rgb(95,230,176); letter-spacing:.04em}
-  .far .a{font-size:var(--rank); color:rgb(95,230,176); word-break:keep-all}
+  .far .a{font-size:calc(var(--rank) * .75); color:rgb(95,230,176); word-break:keep-all}
   #no{font-size:var(--sub); color:var(--line); letter-spacing:.1em; font-variant-numeric:tabular-nums}
   #w{font-size:var(--stage); background:var(--name); color:var(--bg); padding:.1em .35em; word-break:keep-all; line-height:1.2}
   .k{font-size:var(--rank); color:var(--line); letter-spacing:.06em; line-height:1.6}
